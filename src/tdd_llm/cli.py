@@ -6,6 +6,7 @@ import click
 import typer
 from rich import print as rprint
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from . import __version__
@@ -548,8 +549,6 @@ def _update_cmd(
     Fetches the latest templates from the tdd-llm-workflow repository
     and caches them locally. Cached templates are used by deploy command.
     """
-    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
-
     if not quiet:
         rprint("\n[bold]Updating templates from GitHub...[/bold]\n")
 

@@ -175,7 +175,7 @@ class TestUpdateTemplates:
 
         manifest_data = {
             "version": "1.1.0",
-            "templates": {"base/test.md": test_checksum}
+            "templates": {"commands/test.md": test_checksum}
         }
 
         def mock_get(url):
@@ -195,13 +195,13 @@ class TestUpdateTemplates:
 
                 assert result.status == "updated"
                 assert result.version == "1.1.0"
-                assert "base/test.md" in result.files_updated
+                assert "commands/test.md" in result.files_updated
 
     def test_checksum_mismatch(self, temp_dir):
         """Test handling of checksum mismatch."""
         manifest_data = {
             "version": "1.0.0",
-            "templates": {"base/test.md": "expected_checksum"}
+            "templates": {"commands/test.md": "expected_checksum"}
         }
 
         def mock_get(url):
@@ -229,7 +229,7 @@ class TestUpdateTemplates:
 
         manifest_data = {
             "version": "1.0.0",
-            "templates": {"base/test.md": test_checksum}
+            "templates": {"commands/test.md": test_checksum}
         }
 
         def mock_get(url):
@@ -253,4 +253,4 @@ class TestUpdateTemplates:
                 update_templates(progress_callback=progress_callback)
 
                 assert len(callback_calls) == 1
-                assert callback_calls[0] == (1, 1, "base/test.md")
+                assert callback_calls[0] == (1, 1, "commands/test.md")
