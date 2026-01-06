@@ -21,6 +21,7 @@ from .config import (
     PROJECT_CONFIG_NAME,
 )
 from .deployer import deploy
+from .updater import get_local_manifest, update_templates
 
 app = typer.Typer(
     name="tdd-llm",
@@ -201,6 +202,10 @@ def _deploy_cmd(
         bool,
         typer.Option("--force", "-f", help="Overwrite existing files"),
     ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Use package templates, ignore cached updates"),
+    ] = False,
 ):
     """Deploy TDD templates to .claude and .gemini directories."""
     config = Config.load()
@@ -237,6 +242,16 @@ def _deploy_cmd(
     rprint(f"  Backend: [cyan]{effective_backend}[/cyan]")
     rprint(f"  Platforms: [cyan]{', '.join(effective_platforms)}[/cyan]")
 
+    # Show template source
+    if no_cache:
+        rprint(f"  Templates: [dim]package (--no-cache)[/dim]")
+    else:
+        local_manifest = get_local_manifest()
+        if local_manifest:
+            rprint(f"  Templates: [green]cache v{local_manifest.version}[/green]")
+        else:
+            rprint(f"  Templates: [dim]package (no cache)[/dim]")
+
     if dry_run:
         rprint(f"  [yellow](dry run - no files will be written)[/yellow]")
 
@@ -251,6 +266,7 @@ def _deploy_cmd(
         dry_run=dry_run,
         force=force,
         config=config,
+        no_cache=no_cache,
     )
 
     # Show results
@@ -515,6 +531,78 @@ def _config_cmd(
 
 
 app.command(name="config")(_config_cmd)
+
+
+def _update_cmd(
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Force re-download all templates"),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress progress output"),
+    ] = False,
+):
+    """Update templates from GitHub repository.
+
+    Fetches the latest templates from the tdd-llm-workflow repository
+    and caches them locally. Cached templates are used by deploy command.
+    """
+    from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+
+    if not quiet:
+        rprint("\n[bold]Updating templates from GitHub...[/bold]\n")
+
+    progress: Progress | None = None
+    task_id = None
+
+    def progress_callback(current: int, total: int, filename: str):
+        nonlocal progress, task_id
+        if quiet:
+            return
+        if progress is None:
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+            )
+            progress.start()
+            task_id = progress.add_task("Downloading", total=total)
+        progress.update(task_id, completed=current)
+
+    try:
+        result = update_templates(force=force, progress_callback=progress_callback)
+    finally:
+        if progress:
+            progress.stop()
+
+    # Display results
+    if result.status == "up_to_date":
+        rprint(f"[green]Already up to date[/green] (version {result.version})")
+        raise typer.Exit(0)
+
+    if result.status == "updated":
+        rprint(f"\n[green]Updated successfully![/green]")
+        if result.previous_version:
+            rprint(f"  Version: {result.previous_version} -> {result.version}")
+        else:
+            rprint(f"  Version: {result.version}")
+
+        if result.files_updated:
+            rprint(f"  Files updated: {len(result.files_updated)}")
+        if result.files_unchanged:
+            rprint(f"  Files unchanged: {len(result.files_unchanged)}")
+        raise typer.Exit(0)
+
+    # Error case
+    rprint("\n[red]Update failed[/red]")
+    for error in result.errors:
+        rprint(f"  [red]Error:[/red] {error}")
+    raise typer.Exit(1)
+
+
+app.command(name="update")(_update_cmd)
 
 
 if __name__ == "__main__":

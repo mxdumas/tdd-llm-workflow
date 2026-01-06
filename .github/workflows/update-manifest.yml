@@ -1,0 +1,63 @@
+name: Update Template Manifest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/tdd_llm/templates/**'
+      - '!src/tdd_llm/templates/manifest.json'
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+
+    # Don't run on commits made by this workflow
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Get current version and increment
+        id: version
+        run: |
+          if [ -f src/tdd_llm/templates/manifest.json ]; then
+            CURRENT=$(python -c "import json; print(json.load(open('src/tdd_llm/templates/manifest.json'))['version'])")
+            # Parse version and increment patch
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+          else
+            NEW_VERSION="1.0.0"
+          fi
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version: $NEW_VERSION"
+
+      - name: Generate manifest
+        run: python scripts/generate_manifest.py ${{ steps.version.outputs.version }}
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet src/tdd_llm/templates/manifest.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add src/tdd_llm/templates/manifest.json
+          git commit -m "chore: update template manifest to v${{ steps.version.outputs.version }} [skip ci]"
+          git push

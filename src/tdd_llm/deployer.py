@@ -9,6 +9,7 @@ from . import converter, placeholder
 from .config import Config
 from .paths import (
     get_base_templates_dir,
+    get_cached_base_templates_dir,
     get_project_claude_dir,
     get_project_gemini_dir,
     get_user_claude_dir,
@@ -68,6 +69,7 @@ def deploy(
     dry_run: bool = False,
     force: bool = False,
     config: Config | None = None,
+    no_cache: bool = False,
 ) -> DeploymentResult:
     """Deploy TDD templates to target directories.
 
@@ -80,6 +82,7 @@ def deploy(
         dry_run: If True, don't actually write files.
         force: If True, overwrite existing files.
         config: Config instance for config-based placeholders.
+        no_cache: If True, use package templates ignoring cached updates.
 
     Returns:
         DeploymentResult with details of what was done.
@@ -91,27 +94,37 @@ def deploy(
         config = Config.load()
 
     result = DeploymentResult()
-    base_dir = get_base_templates_dir()
+
+    # Use cached templates if available, otherwise fall back to package
+    cached_base_dir = get_cached_base_templates_dir()
+    package_base_dir = get_base_templates_dir()
+
+    if no_cache or not cached_base_dir.exists():
+        base_dir = package_base_dir
+    else:
+        base_dir = cached_base_dir
+
     target_dirs = get_target_dirs(target, platforms, project_path)
 
-    # Get source .claude directory
-    source_claude = base_dir / ".claude"
-    if not source_claude.exists():
+    # Get source commands directory
+    source_commands = base_dir / "commands"
+    if not source_commands.exists():
         result.success = False
-        result.errors.append(f"Base templates not found: {source_claude}")
+        result.errors.append(f"Commands templates not found: {source_commands}")
         return result
 
     # Deploy to each platform
     for platform, target_dir in target_dirs.items():
         platform_result = _deploy_to_platform(
-            source_claude,
-            target_dir,
+            source_commands,
+            target_dir / "commands",
             platform,
             lang,
             backend,
             dry_run,
             force,
             config,
+            no_cache,
         )
 
         result.files_created.extend(platform_result.files_created)
@@ -135,18 +148,20 @@ def _deploy_to_platform(
     dry_run: bool,
     force: bool,
     config: Config,
+    no_cache: bool,
 ) -> DeploymentResult:
     """Deploy to a single platform.
 
     Args:
-        source_dir: Source .claude directory.
-        target_dir: Target directory (.claude or .gemini).
+        source_dir: Source commands directory.
+        target_dir: Target commands directory (.claude/commands or .gemini/commands).
         platform: Platform name ("claude" or "gemini").
         lang: Language for placeholders.
         backend: Backend for placeholders.
         dry_run: Don't write files.
         force: Overwrite existing.
         config: Config instance for config-based placeholders.
+        no_cache: If True, use package placeholders only.
 
     Returns:
         DeploymentResult for this platform.
@@ -182,7 +197,9 @@ def _deploy_to_platform(
         content = source_file.read_text(encoding="utf-8")
 
         # Replace placeholders
-        processed = placeholder.replace_placeholders(content, lang, backend, config)
+        processed = placeholder.replace_placeholders(
+            content, lang, backend, config, no_cache=no_cache
+        )
         found_placeholders = placeholder.find_placeholders(content)
         remaining_placeholders = placeholder.find_placeholders(processed)
         replaced = found_placeholders - remaining_placeholders

@@ -6,7 +6,12 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from .paths import get_backend_placeholders_dir, get_lang_placeholders_dir
+from .paths import (
+    get_backend_placeholders_dir,
+    get_cached_backend_placeholders_dir,
+    get_cached_lang_placeholders_dir,
+    get_lang_placeholders_dir,
+)
 
 if TYPE_CHECKING:
     from .config import Config
@@ -57,19 +62,21 @@ def load_placeholder(
     lang: str | None,
     backend: str | None,
     config: Config | None = None,
+    no_cache: bool = False,
 ) -> str | None:
-    """Load placeholder content from config or file.
+    """Load placeholder content from config, cache, or package.
 
     Searches in order:
     1. Config-based placeholder (for configurable values like thresholds)
-    2. Language-specific placeholder file (if lang provided)
-    3. Backend-specific placeholder file (if backend provided)
+    2. Cached placeholder files (from tdd-llm update)
+    3. Package placeholder files (bundled with package)
 
     Args:
         name: Placeholder name (e.g., "TESTING_FRAMEWORK").
         lang: Language name (e.g., "python").
         backend: Backend name (e.g., "jira").
         config: Config instance for config-based placeholders.
+        no_cache: If True, skip cached placeholders and use package only.
 
     Returns:
         Placeholder content or None if not found.
@@ -79,14 +86,25 @@ def load_placeholder(
     if config_value is not None:
         return config_value
 
-    # Try language placeholder
+    # Try cached placeholder (from tdd-llm update)
+    if not no_cache:
+        if lang:
+            cached_lang_file = get_cached_lang_placeholders_dir(lang) / f"{name}.md"
+            if cached_lang_file.exists():
+                return cached_lang_file.read_text(encoding="utf-8").strip()
+
+        if backend:
+            cached_backend_file = get_cached_backend_placeholders_dir(backend) / f"{name}.md"
+            if cached_backend_file.exists():
+                return cached_backend_file.read_text(encoding="utf-8").strip()
+
+    # Fall back to package placeholder
     if lang:
         lang_dir = get_lang_placeholders_dir(lang)
         lang_file = lang_dir / f"{name}.md"
         if lang_file.exists():
             return lang_file.read_text(encoding="utf-8").strip()
 
-    # Try backend placeholder
     if backend:
         backend_dir = get_backend_placeholders_dir(backend)
         backend_file = backend_dir / f"{name}.md"
@@ -102,6 +120,7 @@ def replace_placeholders(
     backend: str | None = None,
     config: Config | None = None,
     remove_unfound: bool = True,
+    no_cache: bool = False,
 ) -> str:
     """Replace all placeholders in content.
 
@@ -112,6 +131,7 @@ def replace_placeholders(
         config: Config instance for config-based placeholders.
         remove_unfound: If True, remove placeholders without replacements.
                        If False, leave them as-is.
+        no_cache: If True, skip cached placeholders and use package only.
 
     Returns:
         Content with placeholders replaced.
@@ -119,7 +139,7 @@ def replace_placeholders(
     placeholders = find_placeholders(content)
 
     for name in placeholders:
-        replacement = load_placeholder(name, lang, backend, config)
+        replacement = load_placeholder(name, lang, backend, config, no_cache)
 
         if replacement is not None:
             content = content.replace(f"{{{{{name}}}}}", replacement)

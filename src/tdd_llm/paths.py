@@ -76,8 +76,8 @@ def get_templates_dir() -> Path:
 
 
 def get_base_templates_dir() -> Path:
-    """Get the base templates directory (containing .claude structure)."""
-    return get_templates_dir() / "base"
+    """Get the base templates directory (containing commands structure)."""
+    return get_templates_dir()
 
 
 def get_placeholders_dir() -> Path:
@@ -93,3 +93,34 @@ def get_lang_placeholders_dir(lang: str) -> Path:
 def get_backend_placeholders_dir(backend: str) -> Path:
     """Get the placeholders directory for a specific backend."""
     return get_placeholders_dir() / "backends" / backend
+
+
+def get_templates_cache_dir() -> Path:
+    """Get the cached templates directory (from update command).
+
+    Templates are stored alongside the config for simplicity.
+
+    Returns:
+        Path to templates cache directory within config dir.
+    """
+    return get_config_dir() / "templates"
+
+
+def get_cached_base_templates_dir() -> Path:
+    """Get cached base templates directory."""
+    return get_templates_cache_dir()
+
+
+def get_cached_placeholders_dir() -> Path:
+    """Get cached placeholders directory."""
+    return get_templates_cache_dir() / "placeholders"
+
+
+def get_cached_lang_placeholders_dir(lang: str) -> Path:
+    """Get the cached placeholders directory for a specific language."""
+    return get_cached_placeholders_dir() / "langs" / lang
+
+
+def get_cached_backend_placeholders_dir(backend: str) -> Path:
+    """Get the cached placeholders directory for a specific backend."""
+    return get_cached_placeholders_dir() / "backends" / backend
