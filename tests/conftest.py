@@ -8,12 +8,13 @@ from unittest import mock
 
 import pytest
 
+# Set NO_COLOR before any imports to disable Rich colors
+os.environ["NO_COLOR"] = "1"
 
-@pytest.fixture(autouse=True)
-def disable_rich_colors():
-    """Disable Rich colors for consistent CLI output across platforms."""
-    with mock.patch.dict(os.environ, {"NO_COLOR": "1"}):
-        yield
+
+def pytest_configure(config):
+    """Set environment variables before test collection."""
+    os.environ["NO_COLOR"] = "1"
 
 
 @pytest.fixture(autouse=True)
