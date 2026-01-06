@@ -1,6 +1,8 @@
 # tdd-llm
 
-Deploy TDD workflow templates for Claude and Gemini AI assistants.
+**AI-Powered TDD Workflows for Claude and Gemini**
+
+Deploy structured Test-Driven Development workflows to your AI coding assistants. Guide Claude and Gemini through the RED-GREEN-REFACTOR cycle with consistent, reproducible prompts.
 
 ## Features
 
