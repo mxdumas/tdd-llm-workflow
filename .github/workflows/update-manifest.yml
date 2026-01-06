@@ -16,6 +16,7 @@ jobs:
 
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - uses: actions/checkout@v4
@@ -53,11 +54,16 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push
+      - name: Create Pull Request
         if: steps.changes.outputs.changed == 'true'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add src/tdd_llm/templates/manifest.json
-          git commit -m "chore: update template manifest to v${{ steps.version.outputs.version }} [skip ci]"
-          git push
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update template manifest to v${{ steps.version.outputs.version }}"
+          title: "chore: update template manifest to v${{ steps.version.outputs.version }}"
+          body: |
+            Auto-generated manifest update.
+
+            Updates template checksums for version ${{ steps.version.outputs.version }}.
+          branch: chore/update-manifest-${{ steps.version.outputs.version }}
+          delete-branch: true
