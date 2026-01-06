@@ -29,6 +29,7 @@ dependencies = [
     "typer>=0.9.0",
     "pyyaml>=6.0",
     "rich>=13.0",
+    "httpx>=0.25.0",
 ]
 
 [project.optional-dependencies]
@@ -36,14 +37,15 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
+    "pre-commit>=3.0",
 ]
 
 [project.scripts]
 tdd-llm = "tdd_llm.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/user/tdd-llm"
-Repository = "https://github.com/user/tdd-llm"
+Homepage = "https://github.com/mxdumas/tdd-llm-workflow"
+Repository = "https://github.com/mxdumas/tdd-llm-workflow"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tdd_llm"]

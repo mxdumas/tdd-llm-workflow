@@ -1,12 +1,12 @@
 """CLI interface for tdd-llm."""
 
-from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import click
 import typer
 from rich import print as rprint
 from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from . import __version__
@@ -18,9 +18,9 @@ from .config import (
     get_global_config_path,
     get_project_config_path,
     is_first_run,
-    PROJECT_CONFIG_NAME,
 )
 from .deployer import deploy
+from .updater import get_local_manifest, update_templates
 
 app = typer.Typer(
     name="tdd-llm",
@@ -62,7 +62,7 @@ def run_setup_wizard() -> Config | None:
     # Backend selection
     available_backends = get_available_backends()
     if available_backends:
-        rprint(f"\n[bold]Available backends:[/bold]")
+        rprint("\n[bold]Available backends:[/bold]")
         rprint("  - files: Local files (docs/epics/, docs/state.json)")
         rprint("  - jira: Jira via MCP server")
 
@@ -73,7 +73,7 @@ def run_setup_wizard() -> Config | None:
     )
 
     # Target selection
-    rprint(f"\n[bold]Deployment targets:[/bold]")
+    rprint("\n[bold]Deployment targets:[/bold]")
     rprint("  - project: Deploy to .claude/ and .gemini/ in project directory")
     rprint("  - user: Deploy to user-level config directories")
 
@@ -84,7 +84,7 @@ def run_setup_wizard() -> Config | None:
     )
 
     # Platforms selection
-    rprint(f"\n[bold]Available platforms:[/bold] claude, gemini")
+    rprint("\n[bold]Available platforms:[/bold] claude, gemini")
     platforms_input = typer.prompt(
         "Platforms to deploy (comma-separated)",
         default="claude,gemini",
@@ -92,7 +92,7 @@ def run_setup_wizard() -> Config | None:
     platforms = [p.strip().lower() for p in platforms_input.split(",")]
 
     # Coverage thresholds
-    rprint(f"\n[bold]Coverage thresholds[/bold]")
+    rprint("\n[bold]Coverage thresholds[/bold]")
     coverage_line = typer.prompt(
         "Line coverage threshold (%)",
         default=80,
@@ -190,7 +190,7 @@ def _deploy_cmd(
         typer.Option("--target", "-t", help="Deployment target (project or user)"),
     ] = "",
     platforms: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option("--platform", "-p", help="Platforms to deploy (claude, gemini)"),
     ] = None,
     dry_run: Annotated[
@@ -200,6 +200,10 @@ def _deploy_cmd(
     force: Annotated[
         bool,
         typer.Option("--force", "-f", help="Overwrite existing files"),
+    ] = False,
+    no_cache: Annotated[
+        bool,
+        typer.Option("--no-cache", help="Use package templates, ignore cached updates"),
     ] = False,
 ):
     """Deploy TDD templates to .claude and .gemini directories."""
@@ -227,18 +231,28 @@ def _deploy_cmd(
 
     # Validate target
     if effective_target not in ("project", "user"):
-        rprint(f"[red]Error:[/red] Target must be 'project' or 'user'")
+        rprint("[red]Error:[/red] Target must be 'project' or 'user'")
         raise typer.Exit(1)
 
     # Show what we're doing
-    rprint(f"\n[bold]Deploying TDD templates[/bold]")
+    rprint("\n[bold]Deploying TDD templates[/bold]")
     rprint(f"  Target: [cyan]{effective_target}[/cyan]")
     rprint(f"  Language: [cyan]{effective_lang}[/cyan]")
     rprint(f"  Backend: [cyan]{effective_backend}[/cyan]")
     rprint(f"  Platforms: [cyan]{', '.join(effective_platforms)}[/cyan]")
 
+    # Show template source
+    if no_cache:
+        rprint("  Templates: [dim]package (--no-cache)[/dim]")
+    else:
+        local_manifest = get_local_manifest()
+        if local_manifest:
+            rprint(f"  Templates: [green]cache v{local_manifest.version}[/green]")
+        else:
+            rprint("  Templates: [dim]package (no cache)[/dim]")
+
     if dry_run:
-        rprint(f"  [yellow](dry run - no files will be written)[/yellow]")
+        rprint("  [yellow](dry run - no files will be written)[/yellow]")
 
     rprint()
 
@@ -251,6 +265,7 @@ def _deploy_cmd(
         dry_run=dry_run,
         force=force,
         config=config,
+        no_cache=no_cache,
     )
 
     # Show results
@@ -275,13 +290,13 @@ def _deploy_cmd(
         rprint("  (use --force to overwrite)")
 
     if result.errors:
-        rprint(f"[red]Errors:[/red]")
+        rprint("[red]Errors:[/red]")
         for e in result.errors:
             rprint(f"  - {e}")
         raise typer.Exit(1)
 
     if result.success:
-        rprint(f"\n[green]Done![/green]")
+        rprint("\n[green]Done![/green]")
     else:
         raise typer.Exit(1)
 
@@ -337,11 +352,11 @@ def _init_cmd(
         typer.Option("--backend", "-b", help="Default backend for this project"),
     ] = "",
     coverage_line: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--coverage-line", help="Line coverage threshold (%)"),
     ] = None,
     coverage_branch: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--coverage-branch", help="Branch coverage threshold (%)"),
     ] = None,
     force: Annotated[
@@ -372,13 +387,13 @@ def _init_cmd(
     # Override coverage if specified
     if coverage_line is not None:
         if not 0 <= coverage_line <= 100:
-            rprint(f"[red]Error:[/red] Coverage must be between 0 and 100")
+            rprint("[red]Error:[/red] Coverage must be between 0 and 100")
             raise typer.Exit(1)
         config.coverage.line = coverage_line
 
     if coverage_branch is not None:
         if not 0 <= coverage_branch <= 100:
-            rprint(f"[red]Error:[/red] Coverage must be between 0 and 100")
+            rprint("[red]Error:[/red] Coverage must be between 0 and 100")
             raise typer.Exit(1)
         config.coverage.branch = coverage_branch
 
@@ -412,23 +427,23 @@ def _config_cmd(
         typer.Option("--project", "-p", help="Modify project config instead of global"),
     ] = False,
     set_lang: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--set-lang", help="Set default language"),
     ] = None,
     set_backend: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--set-backend", help="Set default backend"),
     ] = None,
     set_target: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--set-target", help="Set default target (project or user)"),
     ] = None,
     set_coverage_line: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--set-coverage-line", help="Set line coverage threshold (%)"),
     ] = None,
     set_coverage_branch: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--set-coverage-branch", help="Set branch coverage threshold (%)"),
     ] = None,
 ):
@@ -443,7 +458,7 @@ def _config_cmd(
 
     if set_backend:
         if set_backend not in ("files", "jira"):
-            rprint(f"[red]Error:[/red] Backend must be 'files' or 'jira'")
+            rprint("[red]Error:[/red] Backend must be 'files' or 'jira'")
             raise typer.Exit(1)
         config.default_backend = set_backend  # type: ignore
         modified = True
@@ -451,7 +466,7 @@ def _config_cmd(
 
     if set_target:
         if set_target not in ("project", "user"):
-            rprint(f"[red]Error:[/red] Target must be 'project' or 'user'")
+            rprint("[red]Error:[/red] Target must be 'project' or 'user'")
             raise typer.Exit(1)
         config.default_target = set_target  # type: ignore
         modified = True
@@ -459,7 +474,7 @@ def _config_cmd(
 
     if set_coverage_line is not None:
         if not 0 <= set_coverage_line <= 100:
-            rprint(f"[red]Error:[/red] Coverage must be between 0 and 100")
+            rprint("[red]Error:[/red] Coverage must be between 0 and 100")
             raise typer.Exit(1)
         config.coverage.line = set_coverage_line
         modified = True
@@ -467,7 +482,7 @@ def _config_cmd(
 
     if set_coverage_branch is not None:
         if not 0 <= set_coverage_branch <= 100:
-            rprint(f"[red]Error:[/red] Coverage must be between 0 and 100")
+            rprint("[red]Error:[/red] Coverage must be between 0 and 100")
             raise typer.Exit(1)
         config.coverage.branch = set_coverage_branch
         modified = True
@@ -505,16 +520,88 @@ def _config_cmd(
         source_table.add_row("Global", str(global_path), global_status)
 
         project_path = get_project_config_path()
-        project_status = "[green]exists[/green]" if project_path.exists() else "[dim]not found[/dim]"
+        project_status = (
+            "[green]exists[/green]" if project_path.exists() else "[dim]not found[/dim]"
+        )
         source_table.add_row("Project", str(project_path), project_status)
 
         console.print(source_table)
 
         if project_path.exists():
-            rprint(f"\n[dim]Project config overrides global config[/dim]")
+            rprint("\n[dim]Project config overrides global config[/dim]")
 
 
 app.command(name="config")(_config_cmd)
+
+
+def _update_cmd(
+    force: Annotated[
+        bool,
+        typer.Option("--force", "-f", help="Force re-download all templates"),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress progress output"),
+    ] = False,
+):
+    """Update templates from GitHub repository.
+
+    Fetches the latest templates from the tdd-llm-workflow repository
+    and caches them locally. Cached templates are used by deploy command.
+    """
+    if not quiet:
+        rprint("\n[bold]Updating templates from GitHub...[/bold]\n")
+
+    progress: Progress | None = None
+    task_id = None
+
+    def progress_callback(current: int, total: int, filename: str):
+        nonlocal progress, task_id
+        if quiet:
+            return
+        if progress is None:
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+            )
+            progress.start()
+            task_id = progress.add_task("Downloading", total=total)
+        progress.update(task_id, completed=current)
+
+    try:
+        result = update_templates(force=force, progress_callback=progress_callback)
+    finally:
+        if progress:
+            progress.stop()
+
+    # Display results
+    if result.status == "up_to_date":
+        rprint(f"[green]Already up to date[/green] (version {result.version})")
+        raise typer.Exit(0)
+
+    if result.status == "updated":
+        rprint("\n[green]Updated successfully![/green]")
+        if result.previous_version:
+            rprint(f"  Version: {result.previous_version} -> {result.version}")
+        else:
+            rprint(f"  Version: {result.version}")
+
+        if result.files_updated:
+            rprint(f"  Files updated: {len(result.files_updated)}")
+        if result.files_unchanged:
+            rprint(f"  Files unchanged: {len(result.files_unchanged)}")
+        raise typer.Exit(0)
+
+    # Error case
+    rprint("\n[red]Update failed[/red]")
+    for error in result.errors:
+        rprint(f"  [red]Error:[/red] {error}")
+    raise typer.Exit(1)
+
+
+app.command(name="update")(_update_cmd)
 
 
 if __name__ == "__main__":

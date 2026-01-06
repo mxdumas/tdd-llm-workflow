@@ -173,15 +173,15 @@ class TestGetBaseTemplatesDir:
         result = get_base_templates_dir()
         assert isinstance(result, Path)
 
-    def test_ends_with_base(self):
-        """Test that base templates dir ends with base."""
+    def test_ends_with_templates(self):
+        """Test that base templates dir ends with templates."""
         result = get_base_templates_dir()
-        assert result.name == "base"
+        assert result.name == "templates"
 
-    def test_is_under_templates(self):
-        """Test that base is under templates directory."""
+    def test_equals_templates_dir(self):
+        """Test that base templates dir equals templates directory."""
         result = get_base_templates_dir()
-        assert result.parent == get_templates_dir()
+        assert result == get_templates_dir()
 
     def test_directory_exists(self):
         """Test that base templates directory exists."""

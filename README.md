@@ -1,6 +1,8 @@
 # tdd-llm
 
-Deploy TDD workflow templates for Claude and Gemini AI assistants.
+**AI-Powered TDD Workflows for Claude and Gemini**
+
+Deploy structured Test-Driven Development workflows to your AI coding assistants. Guide Claude and Gemini through the RED-GREEN-REFACTOR cycle with consistent, reproducible prompts.
 
 ## Features
 
@@ -11,6 +13,7 @@ Deploy TDD workflow templates for Claude and Gemini AI assistants.
 - Global and project-level configuration (project overrides global)
 - Configurable coverage thresholds per project
 - Cross-platform (Linux, macOS, Windows)
+- Update templates from GitHub without reinstalling the package
 
 ## Installation
 
@@ -38,6 +41,9 @@ tdd-llm list
 
 # Show configuration (merged global + project)
 tdd-llm config --show
+
+# Update templates from GitHub (without reinstalling)
+tdd-llm update
 ```
 
 ## Configuration
@@ -98,6 +104,25 @@ tdd-llm config --project --set-lang typescript
 
 Coverage thresholds are applied to the generated TDD templates and enforced during the review phase.
 
+## Updating Templates
+
+Templates can be updated from GitHub without reinstalling the package:
+
+```bash
+# Update to latest templates
+tdd-llm update
+
+# Force re-download all templates
+tdd-llm update --force
+
+# Deploy using package templates (ignore cached updates)
+tdd-llm deploy --no-cache
+```
+
+Updated templates are cached in:
+- Linux/macOS: `~/.config/tdd-llm/templates/`
+- Windows: `%APPDATA%\tdd-llm\templates\`
+
 ## Supported Languages
 
 | Language | Placeholders |
@@ -150,9 +175,13 @@ After deployment, use these commands with Claude or Gemini:
 
 ```bash
 # Clone and install in dev mode
-git clone https://github.com/user/tdd-llm
-cd tdd-llm
+git clone https://github.com/mxdumas/tdd-llm-workflow
+cd tdd-llm-workflow
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate   # Windows
 pip install -e ".[dev]"
+pre-commit install
 
 # Run tests
 pytest
