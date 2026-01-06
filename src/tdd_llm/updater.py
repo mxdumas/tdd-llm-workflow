@@ -6,9 +6,10 @@ import hashlib
 import json
 import shutil
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 import httpx
 
@@ -130,9 +131,7 @@ def update_templates(
                 files_to_download = remote_manifest.templates
                 total = len(files_to_download)
 
-                for idx, (rel_path, expected_checksum) in enumerate(
-                    files_to_download.items()
-                ):
+                for idx, (rel_path, expected_checksum) in enumerate(files_to_download.items()):
                     if progress_callback:
                         progress_callback(idx + 1, total, rel_path)
 
