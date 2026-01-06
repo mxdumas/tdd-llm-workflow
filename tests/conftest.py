@@ -10,13 +10,10 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def consistent_terminal_width():
-    """Force consistent terminal width for Rich/Typer output across platforms."""
-    import shutil
-    # Mock get_terminal_size to return a fixed size on all platforms
-    with mock.patch.object(shutil, "get_terminal_size", return_value=os.terminal_size((200, 50))):
-        with mock.patch.dict(os.environ, {"COLUMNS": "200", "LINES": "50", "TERM": "xterm-256color"}):
-            yield
+def disable_rich_colors():
+    """Disable Rich colors for consistent CLI output across platforms."""
+    with mock.patch.dict(os.environ, {"NO_COLOR": "1"}):
+        yield
 
 
 @pytest.fixture(autouse=True)
