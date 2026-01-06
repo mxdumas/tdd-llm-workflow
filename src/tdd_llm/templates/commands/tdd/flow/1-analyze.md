@@ -190,7 +190,8 @@ git checkout -b e{N}-t{M}
 
 ```markdown
 # [E{N}] T{M} - {Title}
-Complexity: S | Started: {date}
+Complexity: S | Type: {type} | Started: {date}
+Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
 ## Objective
 {One sentence}
@@ -203,7 +204,7 @@ Complexity: S | Started: {date}
 - Modify: `path/file` - {why}
 - Create: `path/file` - {why}
 
-## Tests
+## Tests (if applicable)
 1. `test_name` - {scenario}
 2. `test_name` - {scenario}
 ```
@@ -212,7 +213,8 @@ Complexity: S | Started: {date}
 
 ```markdown
 # [E{N}] T{M} - {Title}
-Complexity: M | Started: {date}
+Complexity: M | Type: {type} | Started: {date}
+Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
 ## Objective
 {One sentence}
@@ -233,7 +235,7 @@ Complexity: M | Started: {date}
 - Modify: `path` - {why}
 - Create: `path` - {why}
 
-## Tests
+## Tests (if applicable)
 1. `test_happy` - {scenario}
 2. `test_edge` - {scenario}
 3. `test_error` - {scenario}
@@ -246,7 +248,8 @@ Complexity: M | Started: {date}
 
 ```markdown
 # [E{N}] T{M} - {Title}
-Complexity: L | Started: {date}
+Complexity: L | Type: {type} | Started: {date}
+Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
 ## Objective
 {One sentence}
@@ -285,7 +288,7 @@ Complexity: L | Started: {date}
 ### Modify
 - `path` - {changes}
 
-## Tests
+## Tests (if applicable)
 1. `test_name` - {scenario}
 2. ...
 
@@ -296,11 +299,17 @@ Complexity: L | Started: {date}
 
 ### 11. Finalize
 
-Set `current.phase` = "test" in `.tdd-state.local.json`.
+Set `current.phase` to first applicable phase in `.tdd-state.local.json`:
+- If type has `test` phase → set to `test`
+- Else if type has `dev` phase → set to `dev`
+- Else → set to `integrate`
 
 ```
 ## Ready: [E{N}] T{M} - {Title}
-Complexity: [S|M|L] | Context: .tdd-context.md
+Complexity: [S|M|L] | Type: {type} | Context: .tdd-context.md
+Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
-Run `/tdd:flow:2-test` to write tests (RED).
+Next: Run `/tdd:flow:2-test` to write tests (RED).
+      Or `/tdd:flow:3-dev` if no test phase.
+      Or `/tdd:flow:5-integrate` if doc/no-code task.
 ```
