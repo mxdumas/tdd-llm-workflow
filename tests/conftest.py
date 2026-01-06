@@ -11,7 +11,7 @@ import pytest
 @pytest.fixture(autouse=True)
 def skip_first_run_wizard():
     """Disable first-run wizard for all tests."""
-    with mock.patch("tdd_llm.config.is_first_run", return_value=False):
+    with mock.patch("tdd_llm.cli.is_first_run", return_value=False):
         yield
 
 

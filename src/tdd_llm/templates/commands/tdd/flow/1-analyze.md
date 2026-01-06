@@ -20,9 +20,15 @@ If `current.phase` != `null` -> error, suggest the correct command.
 * Next incomplete task in `current.epic`
 * If epic complete -> move to next
 
+**Task identification format** (from state.json):
+- Local mode: `{ "epic": "E1", "task": "T2" }` → task_id = `e1-t2`
+- External mode (Jira, etc.): `{ "epic": "PROJ-100", "task": "PROJ-1234" }` → task_id = `PROJ-1234`
+
 ### 3. Evaluate complexity and type
 
-Read task file `docs/epics/E{N}/T{M}.md`.
+**Read task description from:**
+- Local: `docs/epics/{epic_id}/{task_id}.md`
+- External: Task content from `state.json` field `tasks[].description` or user-provided context
 
 **Determine task type from content/title:**
 - `feature` - New functionality (default)
@@ -67,6 +73,8 @@ Read task file `docs/epics/E{N}/T{M}.md`.
 
 Display:
 ```
+Task: {task_id} - {title}
+Epic: {epic_id}
 Complexity: [S|M|L] (score: X/10)
 Type: [feature|bugfix|refactor|test|doc|config|chore]
 → [Fast track|Standard flow|Full ceremony]
@@ -78,7 +86,7 @@ Type: [feature|bugfix|refactor|test|doc|config|chore]
 **If new epic** (first task): Create `.tdd-epic-context.md`:
 
 ```markdown
-# E{N}: {Epic name} - Epic Context
+# {epic_id}: {Epic name} - Epic Context
 - Last updated: {date}
 ## Architectural Decisions
 *Will be enriched after each task*
@@ -93,9 +101,9 @@ Type: [feature|bugfix|refactor|test|doc|config|chore]
 Launch exploration agent:
 
 ```
-Code Scout for [E{N}] T{M}. Report facts only, don't solve.
+Code Scout for {task_id}. Report facts only, don't solve.
 1. Read docs/dev/architecture.md, docs/dev/standards.md
-2. Read task file docs/epics/E{N}/T{M}.md
+2. Read task description (file or state.json)
 3. List impacted files (max 10 paths)
 4. Find similar patterns (max 3 paths)
 ```
@@ -130,7 +138,7 @@ Perform in-depth analysis covering:
 Present to user for confirmation:
 
 ---
-**VALIDATION REQUIRED - [E{N}] T{M}**
+**VALIDATION REQUIRED - {task_id}**
 
 **Objective:** {One sentence}
 
@@ -173,13 +181,17 @@ class ClassName:
 
 ```bash
 git checkout main && git pull origin main
-git checkout -b e{N}-t{M}
+git checkout -b {task_id}
 ```
+
+Branch naming:
+- Local mode: `e1-t2` or `t2` (from E1/T2)
+- External mode: `PROJ-1234` (Jira key directly)
 
 ### 9. Update state
 
 ```json
-{ "current": { "epic": "E{N}", "task": "T{M}", "phase": "analyze" } }
+{ "current": { "epic": "{epic_id}", "task": "{task_id}", "phase": "analyze" } }
 ```
 
 ### 10. Create .tdd-context.md
@@ -189,7 +201,8 @@ git checkout -b e{N}-t{M}
 #### Template S (Small)
 
 ```markdown
-# [E{N}] T{M} - {Title}
+# {task_id} - {Title}
+Epic: {epic_id}
 Complexity: S | Type: {type} | Started: {date}
 Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
@@ -212,7 +225,8 @@ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 #### Template M (Medium)
 
 ```markdown
-# [E{N}] T{M} - {Title}
+# {task_id} - {Title}
+Epic: {epic_id}
 Complexity: M | Type: {type} | Started: {date}
 Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
@@ -247,7 +261,8 @@ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 #### Template L (Large)
 
 ```markdown
-# [E{N}] T{M} - {Title}
+# {task_id} - {Title}
+Epic: {epic_id}
 Complexity: L | Type: {type} | Started: {date}
 Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
@@ -305,7 +320,8 @@ Set `current.phase` to first applicable phase in `.tdd-state.local.json`:
 - Else → set to `integrate`
 
 ```
-## Ready: [E{N}] T{M} - {Title}
+## Ready: {task_id} - {Title}
+Epic: {epic_id}
 Complexity: [S|M|L] | Type: {type} | Context: .tdd-context.md
 Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
