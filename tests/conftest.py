@@ -1,11 +1,19 @@
 """Shared test fixtures for tdd-llm."""
 
+import os
 import tempfile
 import shutil
 from pathlib import Path
 from unittest import mock
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def consistent_terminal_width():
+    """Force consistent terminal width for Rich/Typer output across platforms."""
+    with mock.patch.dict(os.environ, {"COLUMNS": "200", "LINES": "50"}):
+        yield
 
 
 @pytest.fixture(autouse=True)
