@@ -8,7 +8,7 @@ Automatically execute the next TDD flow step based on current phase.
 
 Read in parallel:
 - `docs/state.json` (global state: epics, completed tasks)
-- `.tdd-state.local.json` (local state: current task, phase)
+- `.tdd-state.local.json` (local state: current task, phase, skip_phases)
 
 {{STATE_READ}}
 
@@ -29,8 +29,9 @@ If `.tdd-state.local.json` doesn't exist -> create with current epic.
 | `dev` | Execute `/tdd:flow:3-dev` |
 | `docs` | Execute `/tdd:flow:4-docs` |
 | `review` | Execute `/tdd:flow:5-review` |
+| `done` | Execute `/tdd:flow:6-done` |
 
-**Note:** After `review`, phase stays `review` until `/tdd:flow:6-done` is run manually (finalization = explicit action).
+**Note:** After `6-done`, phase resets to `null` for next task.
 
 ### 3. Execute command
 
@@ -38,7 +39,7 @@ Load and execute instructions from corresponding command.
 
 ## Notes
 
-- `/tdd:flow:6-done` is never called automatically (commit = user decision)
+- `/tdd:flow:6-done` is included but can be skipped if user prefers manual finalization
 - If epic finished, suggest moving to next
 - Practical shortcut to avoid remembering which command to run
 - All phases (except 1-analyze) use `.tdd-context.md` for context

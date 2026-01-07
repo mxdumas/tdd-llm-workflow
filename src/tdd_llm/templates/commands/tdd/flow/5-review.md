@@ -8,7 +8,7 @@ Code review phase and PR creation.
 
 Read `.tdd-context.md` (current task context).
 Read `.tdd-epic-context.md` (epic context).
-Verify `.tdd-state.local.json`: `current.phase` must be "docs".
+Verify `.tdd-state.local.json`: `current.phase` must be "review".
 
 ### 2. Build and tests
 
@@ -29,7 +29,7 @@ If coverage fails: add missing tests before continuing.
 ```bash
 git add .
 git commit -m "$(cat <<'EOF'
-E{N}-T{M}: {short task description}
+{task_id}: {short task description}
 
 Generated with [Claude Code](https://claude.com/claude-code)
 
@@ -37,13 +37,13 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 EOF
 )"
 
-git push -u origin e{N}-t{M}
+git push -u origin {task_id}
 ```
 
 ### 5. Create PR
 
 ```bash
-gh pr create --base main --title "E{N}-T{M}: {task title}" --body "$(cat <<'EOF'
+gh pr create --base main --title "{task_id}: {task title}" --body "$(cat <<'EOF'
 ## Summary
 
 {Description of what the task accomplishes, from .tdd-context.md > Objective}
@@ -103,10 +103,10 @@ Add section after `## Baseline`:
 
 ### 8. Finalize
 
-Set `current.phase` = "review" in `.tdd-state.local.json`.
+Set `current.phase` = "done" in `.tdd-state.local.json`.
 
 ```
-## REVIEW: [E1] T4 - Title
+## REVIEW: {task_id} - Title
 
 **Build:** OK
 **Tests:** [N]/[N] passed

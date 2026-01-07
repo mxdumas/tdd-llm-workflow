@@ -8,7 +8,7 @@ Document the completed task.
 
 Read `.tdd-context.md` (lightweight).
 
-Verify `.tdd-state.local.json`: `current.phase` must be "green".
+Verify `.tdd-state.local.json`: `current.phase` must be "docs".
 
 ### 2. Update CHANGELOG.md
 
@@ -80,12 +80,12 @@ Add final section:
 
 ### 7. Update phase
 
-Set `current.phase` = "docs" in `.tdd-state.local.json`.
+Set `current.phase` = "review" in `.tdd-state.local.json`.
 
 ### 8. Report
 
 ```
-## Documentation: [E1] T4 - Title
+## Documentation: {task_id} - Title
 
 ### Updated
 - `CHANGELOG.md` - Section [Added/Changed/Fixed]

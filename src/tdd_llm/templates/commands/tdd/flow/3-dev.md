@@ -128,16 +128,19 @@ Add section after `## Implementation`:
 
 ### 8. Finalize
 
-Set `current.phase` = "review" in `.tdd-state.local.json`.
+Determine next phase (check `skip_phases` in `.tdd-state.local.json`):
+- If `4-docs` not skipped → set `current.phase` = "docs"
+- Else → set `current.phase` = "review"
 
 ```
-## GREEN: [E1] T4 - Title
+## GREEN: {task_id} - Title
 
 **Files created:** [N]
 **Files modified:** [N]
 **Tests:** [N]/[N] passed
 
 Run `/tdd:flow:4-docs` to document.
+     Or `/tdd:flow:5-review` if docs phase skipped.
 ```
 
 ## Anti-patterns

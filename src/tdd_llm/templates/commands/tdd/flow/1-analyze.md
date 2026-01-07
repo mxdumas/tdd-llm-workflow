@@ -9,7 +9,7 @@ Act as a **Senior Architect** to prepare the ground before any code.
 
 Read in parallel:
 - `docs/state.json` (global state: epics, completed tasks)
-- `.tdd-state.local.json` (local state: current task, phase)
+- `.tdd-state.local.json` (local state: current task, phase, skip_phases)
 
 {{STATE_READ}}
 
@@ -18,17 +18,11 @@ If `current.phase` != `null` -> error, suggest the correct command.
 ### 2. Determine task
 
 * Next incomplete task in `current.epic`
-* If epic complete -> move to next
+* If epic complete -> Validate with user and move to next
 
-**Task identification format** (from state.json):
-- Local mode: `{ "epic": "E1", "task": "T2" }` → task_id = `e1-t2`
-- External mode (Jira, etc.): `{ "epic": "PROJ-100", "task": "PROJ-1234" }` → task_id = `PROJ-1234`
+{{TASK_SOURCE}}
 
 ### 3. Evaluate complexity and type
-
-**Read task description from:**
-- Local: `docs/epics/{epic_id}/{task_id}.md`
-- External: Task content from `state.json` field `tasks[].description` or user-provided context
 
 **Determine task type from content/title:**
 - `feature` - New functionality (default)
@@ -41,15 +35,15 @@ If `current.phase` != `null` -> error, suggest the correct command.
 
 **Applicable phases by type:**
 
-| Type | test | dev | refactor |
-|------|:----:|:---:|:--------:|
-| feature | yes | yes | yes |
-| bugfix | yes | yes | yes |
-| refactor | yes | yes | yes |
-| test | - | yes | - |
-| doc | - | - | - |
-| config | - | yes | - |
-| chore | - | yes | - |
+| Type | 2-test | 3-dev | 4-docs | 5-review |
+|------|:------:|:-----:|:------:|:--------:|
+| feature | yes | yes | yes | yes |
+| bugfix | yes | yes | ? | yes |
+| refactor | yes | yes | ? | yes |
+| test | - | yes | ? | yes |
+| doc | - | - | yes | yes |
+| config | - | yes | ? | yes |
+| chore | - | yes | ? | yes |
 
 **Score complexity:**
 
@@ -78,7 +72,7 @@ Epic: {epic_id}
 Complexity: [S|M|L] (score: X/10)
 Type: [feature|bugfix|refactor|test|doc|config|chore]
 → [Fast track|Standard flow|Full ceremony]
-→ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
+→ Phases: analyze [→ test] [→ dev] [→ docs] → review → done
 ```
 
 ### 4. Load/Create epic context
@@ -181,12 +175,9 @@ class ClassName:
 
 ```bash
 git checkout main && git pull origin main
-git checkout -b {task_id}
 ```
 
-Branch naming:
-- Local mode: `e1-t2` or `t2` (from E1/T2)
-- External mode: `PROJ-1234` (Jira key directly)
+{{BRANCH_FORMAT}}
 
 ### 9. Update state
 
@@ -204,7 +195,7 @@ Branch naming:
 # {task_id} - {Title}
 Epic: {epic_id}
 Complexity: S | Type: {type} | Started: {date}
-Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
+Phases: analyze [→ test] [→ dev] [→ docs] → review → done
 
 ## Objective
 {One sentence}
@@ -228,7 +219,7 @@ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 # {task_id} - {Title}
 Epic: {epic_id}
 Complexity: M | Type: {type} | Started: {date}
-Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
+Phases: analyze [→ test] [→ dev] [→ docs] → review → done
 
 ## Objective
 {One sentence}
@@ -264,7 +255,7 @@ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 # {task_id} - {Title}
 Epic: {epic_id}
 Complexity: L | Type: {type} | Started: {date}
-Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
+Phases: analyze [→ test] [→ dev] [→ docs] → review → done
 
 ## Objective
 {One sentence}
@@ -314,18 +305,25 @@ Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
 
 ### 11. Finalize
 
-Set `current.phase` to first applicable phase in `.tdd-state.local.json`:
-- If type has `test` phase → set to `test`
-- Else if type has `dev` phase → set to `dev`
-- Else → set to `integrate`
+Determine next phase based on type and `skip_phases` in `.tdd-state.local.json`:
+
+1. Get applicable phases for task type (from table above)
+2. Remove phases listed in `skip_phases` (if any)
+3. Set `current.phase` to first remaining phase after `analyze`
+
+**Phase transition logic:**
+- If `2-test` applicable and not skipped → set to `test`
+- Else if `3-dev` applicable and not skipped → set to `dev`
+- Else if `4-docs` applicable and not skipped → set to `docs`
+- Else → set to `review`
 
 ```
 ## Ready: {task_id} - {Title}
 Epic: {epic_id}
 Complexity: [S|M|L] | Type: {type} | Context: .tdd-context.md
-Phases: analyze [→ test] [→ dev] [→ refactor] → integrate
+Phases: analyze [→ test] [→ dev] [→ docs] → review → done
 
 Next: Run `/tdd:flow:2-test` to write tests (RED).
-      Or `/tdd:flow:3-dev` if no test phase.
-      Or `/tdd:flow:5-integrate` if doc/no-code task.
+      Or `/tdd:flow:3-dev` if test phase skipped.
+      Or `/tdd:flow:4-docs` if doc-only task.
 ```
