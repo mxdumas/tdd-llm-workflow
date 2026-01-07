@@ -6,21 +6,16 @@ You are a paranoid QA Engineer. Your goal is to break future code. Write meaning
 
 ### 1. Load context
 
-Read `.tdd-context.md` (current task context).
-
-Read `.tdd-epic-context.md` (epic context):
-- Defined interfaces -> respect signatures in tests
-- Established patterns -> follow test conventions
-
-Read `docs/dev/standards.md` for formatting conventions.
+Read in parallel:
+- `.tdd-context.md` (current task context)
+- `.tdd-epic-context.md` (epic context: interfaces, patterns)
+- `docs/dev/standards.md` (formatting conventions)
 
 Verify `.tdd-state.local.json`: `current.phase` must be "test".
 
 ### 2. Capture coverage baseline
 
-{{COVERAGE_CMD}}
-
-**Add to .tdd-context.md** (after `## Conventions` section):
+Run coverage command from project standards. Add to `.tdd-context.md` after `## Conventions`:
 
 ```markdown
 ## Baseline
@@ -28,74 +23,60 @@ Verify `.tdd-state.local.json`: `current.phase` must be "test".
 - Tests: [N] tests
 ```
 
-### 3. Understand test scope
+### 3. Determine test scope
 
-**Test Pyramid - MANDATORY layers:**
+**Test Pyramid - Apply layers based on task:**
 
-| Layer | Scope | Target | Skip when |
-|-------|-------|--------|-----------|
-| **Unit** | Single function/class in isolation | ~70% | Never |
-| **Integration** | Multiple components, real dependencies | ~20% | No cross-component interaction |
-| **Architecture** | Structure, dependencies, conventions | Per rule | S tasks, no arch rules defined |
-| **Contract** | API boundaries, serialization | Per public API | Internal-only changes |
-| **Performance** | Timeout, memory, scalability | Critical paths | S tasks, no perf requirements |
+| Layer | Scope | Skip when |
+|-------|-------|-----------|
+| **Unit** | Single function/class in isolation | Never |
+| **Integration** | Multiple components, real dependencies | No cross-component interaction |
+| **Architecture** | Structure, dependencies, conventions | S tasks, no arch rules defined |
+| **Performance** | Timeout, memory, scalability | S tasks, no perf requirements |
 
-**Test Matrix - Apply to each layer:**
+**Test Tracks - Apply to each layer:**
 
-| Track | Description | Minimum |
-|-------|-------------|---------|
-| **Happy Path** | Normal flow, valid inputs | 1 per behavior |
-| **Edge Cases** | Boundaries, empty, null, limits | 1 per input parameter |
-| **Error Handling** | Exceptions, failures, invalid states | 1 per error type |
-| **Security** | Injection, auth bypass, data exposure | 1 per entry point (if applicable) |
+| Track | Minimum |
+|-------|---------|
+| **Happy Path** | 1 per behavior |
+| **Edge Cases** | 1 per input parameter |
+| **Error Handling** | 1 per error type |
 
 **Ratio enforcement (STRICT):**
 - Happy Path: **≤ 40%** of total tests
 - Edge + Error: **≥ 50%** of total tests
-- Other tracks: **≥ 10%** (when applicable)
 
 ### 4. Write unit tests
 
-**Context to load:**
-1. Test specs (section `Tests` of .tdd-context.md)
-2. Conventions (section `Conventions`)
-3. Similar tests (read mentioned examples to understand patterns)
+**Load from .tdd-context.md:**
+- Test specs (section `Tests`)
+- Conventions (section `Conventions`) - read mentioned examples for patterns
 
-**Write tests that:**
-- Follow naming: `Action_Context_ExpectedResult`
-- Use Arrange/Act/Assert structure
-- Cover behaviors from specs (not implementation details)
-- Include edge cases from .tdd-context.md
-- Respect conventions
-
-{{TEST_EXAMPLE}}
+**Requirements:**
+- Naming: `Action_Context_ExpectedResult`
+- Structure: Arrange / Act / Assert
+- Cover behaviors from specs, not implementation details
 
 **Quality rules (STRICT):**
-- **Depth over breadth:** Prefer 3 deep tests over 10 shallow ones
-- **No lazy assertions:**
-  - `assert result is not None` -> INSUFFICIENT
-  - `assert len(results) > 0` -> INSUFFICIENT
-  - `assert result.value == 42` -> GOOD
-  - `assert results[0].id == "expected-id"` -> GOOD
-- **Test sad paths harder than happy:**
-  - What if input is empty? None? Max value? Negative?
-  - What if dependency throws? Times out? Returns garbage?
-  - What if called twice? Concurrently? Out of order?
 
-{{MOCK_EXAMPLE}}
+| Rule | Bad | Good |
+|------|-----|------|
+| No lazy assertions | `assert result is not None` | `assert result.value == 42` |
+| Depth over breadth | 10 shallow tests | 3 deep tests |
+| Test sad paths harder | Only valid inputs | null, empty, MAX_INT, negative |
+
+**What to test beyond happy path:**
+- Empty/None/null inputs
+- Boundary values (0, -1, MAX_INT, empty string)
+- Dependency failures (throws, timeout, garbage)
+- Idempotency (call twice = same result?)
+- Concurrency (if applicable)
+
+**Mocking:** Use standard mocking library (unittest.mock, jest.fn, Moq). Prefer mocks over manual Fake classes unless state must persist across calls.
 
 ### 5. Write integration tests
 
 **When required:** Task touches multiple components OR modifies data flow.
-
-**What to test:**
-- Component A calls Component B correctly
-- Data flows through the full pipeline
-- External dependencies behave as expected (use test doubles for I/O only)
-
-**Integration vs Unit:**
-- Unit: `Processor` calls `repo.save()` with correct args (mock)
-- Integration: Data actually appears in `repo` after full flow (real components)
 
 {{INTEGRATION_TEST_EXAMPLE}}
 
@@ -103,22 +84,11 @@ Verify `.tdd-state.local.json`: `current.phase` must be "test".
 
 **When required:** Task is Medium or Large complexity, project has architectural rules.
 
-**What to test:**
-- Layer dependencies (UI -> Service -> Repository, never reverse)
-- Naming conventions (Services end with `Service`, etc.)
-- No circular dependencies
-- Public API surface (no internal types exposed)
-- Forbidden dependencies (e.g., Domain cannot import Infrastructure)
-
 {{ARCH_TEST_EXAMPLE}}
 
 ### 7. Write performance tests (critical paths)
 
-**When required:**
-- Task affects data processing pipeline
-- Task touches algorithms with O(n²) or worse potential
-- Task involves I/O-bound operations
-- Performance requirements specified in .tdd-context.md
+**When required:** Task affects data processing, O(n²)+ algorithms, or I/O-bound operations.
 
 {{PERF_TEST_EXAMPLE}}
 
@@ -127,173 +97,55 @@ Verify `.tdd-state.local.json`: `current.phase` must be "test".
 {{RED_STRATEGY}}
 
 **Critical distinction:**
-- **Syntax error** (missing semicolon, bad brace) -> MUST be fixed
-- **Type/Import error** that prevents test collection -> Create minimal stubs
-- **Test FAILED** (assertion failed, NotImplementedError) -> Correct RED state
+- **Syntax/Import error** (prevents test collection) → Fix or create minimal stubs
+- **Test FAILED** (assertion failed, NotImplementedError) → Correct RED state
 
 ### 9. Completeness checklist
 
-**Before marking RED complete, verify ALL applicable boxes:**
+Before marking RED complete:
 
-**Track coverage:**
 - [ ] Every public method has ≥1 Happy Path test
 - [ ] Every input parameter has ≥1 Edge Case test
 - [ ] Every exception type has ≥1 Error Handling test
-- [ ] Every component interaction has ≥1 Integration test (if multi-component)
+- [ ] Component interactions have Integration tests (if multi-component)
+- [ ] Happy Path ≤ 40%, Edge + Error ≥ 50%
+- [ ] Architecture tests exist (M, L only, if rules defined)
 
-**Depth verification:**
-- [ ] Tested with null/None/empty inputs
-- [ ] Tested with boundary values (0, -1, MAX_INT, empty string)
-- [ ] Tested error propagation (dependency fails -> what happens?)
-- [ ] Tested idempotency if applicable (call twice = same result?)
-
-**Ratio check:**
-- [ ] Happy Path ≤ 40% of tests
-- [ ] Edge + Error ≥ 50% of tests
-
-**Architecture (M, L only):**
-- [ ] Layer dependency rules have tests (if rules exist)
-- [ ] Naming conventions have tests (if conventions exist)
-
-**If any applicable box unchecked -> add missing tests before proceeding.**
+**If any box unchecked → add missing tests.**
 
 ### 10. Update .tdd-context.md
 
-Add section after `## Tests`:
+Add after `## Tests`:
 
 ```markdown
 ### RED Result
-- Tests created: [N] tests in [M] files
-- Pyramid: [X] unit / [Y] integration / [Z] arch / [W] perf
-
-**Test inventory:**
-| # | Type | Track | Test name | Status |
-|---|------|-------|-----------|--------|
-| 1 | Unit | Happy | test_process_valid_data_returns_success | RED |
-| 2 | Unit | Edge | test_process_empty_id_raises_error | RED |
-| 3 | Unit | Error | test_process_null_data_raises_type_error | RED |
-| 4 | Integ | Happy | test_processor_saves_to_repository | RED |
-| 5 | Arch | Rule | test_domain_does_not_import_infrastructure | RED |
-...
-
-**Ratio verification:**
-- Happy: [X]% (target: ≤40%)
-- Edge+Error: [Y]% (target: ≥50%)
-- Other: [Z]%
-
-**Checklist status:**
-- [x] Track coverage complete
-- [x] Depth verification done
-- [x] Ratio respected
-- [ ] Architecture tests (N/A - S task)
-
-- Build: Waiting for implementation (missing types)
-- Tests: RED phase validated
+- Tests: [N] unit / [Y] integration / [Z] arch / [W] perf
+- Ratio: [X]% happy / [Y]% edge+error
+- Status: RED (all failing as expected)
 ```
 
 ### 11. Finalize
 
-**Create files** listed in `.tdd-context.md` section "Files > Create" (test files only).
-
-**Organize by category:**
-- Unit tests (by class/module)
-- Integration tests
-- Architecture tests
-- Performance tests
+Create test files listed in `.tdd-context.md` section "Files > Create".
 
 Determine next phase (check `skip_phases` in `.tdd-state.local.json`):
-- If `3-dev` not skipped -> set `current.phase` = "dev"
-- Else if `4-docs` not skipped -> set `current.phase` = "docs"
-- Else -> set `current.phase` = "review"
+- If `3-dev` not skipped → set `current.phase` = "dev"
+- Else if `4-docs` not skipped → set `current.phase` = "docs"
+- Else → set `current.phase` = "review"
 
 ```
 ## RED: {task_id} - Title
 
-**Tests created:** [N] tests in [M] files
-**Pyramid:** [X] unit / [Y] integration / [Z] arch / [W] perf
-**Ratio:** [X]% happy / [Y]% edge+error / [Z]% other
-
-**Files created:**
-- `tests/unit/...`
-- `tests/integration/...`
-
-**State:**
-- Syntax: Correct
-- Collection: OK (stubs created)
-- Tests: RED (all failing as expected)
-- Coverage baseline: [X.X]%
+**Tests:** [N] unit / [Y] integration / [Z] arch / [W] perf
+**Ratio:** [X]% happy / [Y]% edge+error
+**Status:** Syntax OK, collection OK, all tests RED
 
 Run `/tdd:flow:3-dev` to implement (GREEN).
 ```
 
-## Test anti-patterns (AVOID)
-
-### The Shallow Tester
-```
-// Only tests happy paths with valid data
-// 5 tests that all pass with good inputs -> INSUFFICIENT
-// Where are the edge cases? Error handling? Boundaries?
-```
-
-### The Language Tester
-```
-// Tests language behavior, not our code
-// Test that record equality works -> USELESS
-// Test that enum ToString returns name -> USELESS
-// Test OUR logic, not the language
-```
-
-### The Missing Validation Tester
-```
-// Tests that there IS NO validation - useless
-// Test that out of range value is accepted -> USELESS
-// Either validate and test rejection, or don't test at all
-```
-
-### The Over-Tester
-```
-// Redundant - already covered by a more complete test
-// Test with single item + test with many items -> ONE test with full config suffices
-```
-
-### The Lazy Assertion
-```
-result = service.process(data)
-assert result is not None  // Doesn't prove calculation is correct
-// Correction:
-assert result.value == 42
-assert result.status == "completed"
-```
-
-### The Complex Mock (Trust debt)
-```
-// Too complex - sign of overly coupled architecture
-// If mock setup exceeds 5-10 lines, reconsider design
-```
-
-### The Happy Path Only
-```
-// Writing 3 tests that pass and ignoring:
-// - Empty input
-// - Null input
-// - Boundary values
-// - Concurrent access
-// - Dependency failures
-```
-
-### The Integration Avoider
-```
-// All unit tests, zero integration
-// "Works in isolation" != "Works in system"
-// If components interact, test the interaction
-```
-
 ## Golden rules
 
-1. **Test our code, not the language.** If the test would pass even without our implementation (just with language features), it's useless.
-
-2. **Happy paths are the minority.** Real bugs hide in edge cases, error handling, and unexpected inputs.
-
+1. **Test our code, not the language.** If the test passes without our implementation, it's useless.
+2. **Happy paths are the minority.** Real bugs hide in edge cases and error handling.
 3. **Depth beats breadth.** 5 thorough tests > 15 shallow tests.
-
 4. **Test the interaction.** Unit tests alone cannot catch integration bugs.
