@@ -92,8 +92,6 @@ The project follows Test-Driven Development:
 - Naming: `{chosen convention}`
 - Structure: {AAA/GWT/free}
 
-{{TEST_EXAMPLE}}
-
 ### Coverage
 
 - Each public behavior must have a test

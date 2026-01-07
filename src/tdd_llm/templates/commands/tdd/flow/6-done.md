@@ -36,7 +36,8 @@ If all epic tasks completed: set `status` = "completed".
   "current": {
     "epic": "{epic_id}",
     "task": null,
-    "phase": null
+    "phase": null,
+    "skip_phases": []
   }
 }
 ```

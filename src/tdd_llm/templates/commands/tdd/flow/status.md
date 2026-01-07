@@ -27,10 +27,13 @@ If `.tdd-state.local.json` doesn't exist -> create with:
   "current": {
     "epic": "{first in_progress or not_started epic}",
     "task": null,
-    "phase": null
+    "phase": null,
+    "skip_phases": []
   }
 }
 ```
+
+`skip_phases` is an array of phase names to skip (e.g., `["test", "docs"]`).
 
 ### 2. Load context
 
