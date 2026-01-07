@@ -25,11 +25,29 @@ Tests validate, they don't limit. Implement UI, CSS, refactors even without test
 
 **Don't:** Features not in context. Premature optimization. Over-engineering.
 
-### 3. Make tests pass
+### 3. Make tests pass (GREEN)
 
 Run tests. **Iterate** until 100% pass. Fix implementation, not tests.
 
-### 4. Update .tdd-context.md
+### 4. Refactor
+
+Tests pass. Now clean up without changing behavior.
+
+**Look for:**
+- Duplicated code → extract function/method
+- Long functions → split by responsibility
+- Magic values → named constants
+- Poor names → rename for clarity
+- Dead code → remove
+
+**Rules:**
+- Run tests after each change
+- Small steps, one refactor at a time
+- If tests break → revert, try smaller step
+
+**Skip if:** Code is already clean, or task is S complexity.
+
+### 5. Update .tdd-context.md
 
 Add after `## Design`:
 
@@ -37,10 +55,10 @@ Add after `## Design`:
 ### GREEN Result
 - Tests: [N]/[N] passed
 - Build: OK
-- Notes: [Any deviation from plan, or "None"]
+- Refactored: [List changes, or "None"]
 ```
 
-### 5. Finalize
+### 6. Finalize
 
 Determine next phase (check `skip_phases` in `.tdd-state.local.json`):
 - If `4-docs` not skipped → set `current.phase` = "docs"
