@@ -12,9 +12,7 @@ Verify `.tdd-state.local.json`: `current.phase` must be "done".
 
 ### 2. Final verification
 
-{{BUILD_TEST_CMD}}
-
-If failure: don't continue, fix first.
+Run build and tests. If failure, fix first.
 
 ### 3. Update `docs/state.json`
 

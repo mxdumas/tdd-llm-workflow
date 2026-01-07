@@ -12,9 +12,7 @@ Verify `.tdd-state.local.json`: `current.phase` must be "review".
 
 ### 2. Build and tests
 
-{{BUILD_TEST_CMD}}
-
-If failure, fix first.
+Run build and tests. If failure, fix first.
 
 ### 3. Verify coverage
 

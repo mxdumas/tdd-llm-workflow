@@ -26,7 +26,7 @@ Read test files created in RED phase.
 **Role of tests:**
 - Tests VALIDATE behavior (what MUST pass)
 - Tests don't LIMIT scope (there may be more than what's tested)
-- COMPLETE scope is in `.tdd-context.md > Files` + `Implementation`
+- COMPLETE scope is in `.tdd-context.md > Files` + `Design`
 
 **Understand from tests:**
 - Expected API (signatures, types)
@@ -51,9 +51,8 @@ Read test files created in RED phase.
 
 **Do:**
 - Clean and readable code from the start
-- Follow conventions from `.tdd-context.md > Key conventions`
-- Follow pattern from `.tdd-context.md > Implementation`
-- Implement ALL of the "Implementation" section from context
+- Follow pattern from `.tdd-context.md > Design > Logic`
+- Implement ALL of the "Design" section from context
 - Clear names
 
 **Don't:**
@@ -70,7 +69,7 @@ Read test files created in RED phase.
 Read `.tdd-context.md` entirely:
 - Section **Files > Create** - all files created?
 - Section **Files > Modify** - all modifications done?
-- Section **Implementation** - all approaches/patterns implemented?
+- Section **Design** - all approaches/patterns implemented?
 
 **Verification in 2 passes:**
 
@@ -79,8 +78,8 @@ Read `.tdd-context.md` entirely:
 - Ignore test files (already created in RED phase)
 - If files missing -> STOP, implement first
 
-**B) Content (Implementation):**
-- Read section `.tdd-context.md > Implementation`
+**B) Content (Design):**
+- Read section `.tdd-context.md > Design`
 - Verify EACH described element is implemented:
   - All described interfaces/classes
   - All described patterns/approaches
@@ -92,26 +91,17 @@ Read `.tdd-context.md` entirely:
 
 ### 5. Make tests pass
 
-{{BUILD_TEST_CMD}}
+Run the project's test command. **Iterate** until 100% pass.
 
-**If failure:**
-1. Read error message
-2. Fix implementation (not the test)
-3. Re-test
+**If failure:** Fix implementation, not the test. Re-read error, fix, re-test.
 
-**Iterate** until 100% pass.
+### 6. Update .tdd-context.md
 
-### 6. Final verification
-
-{{BUILD_TEST_CMD}}
-
-### 7. Update .tdd-context.md
-
-Add section after `## Implementation`:
+Add section after `## Design`:
 
 ```markdown
 ### GREEN Result
-- Files created: [N] ([list with types: Core, UI, Tests])
+- Files created: [N] ([list with types: Core, UI, Config])
 - Files modified: [N] ([list or "None"])
 - Tests: [N]/[N] passed (GREEN)
 - Build: OK, no errors
@@ -126,7 +116,7 @@ Add section after `## Implementation`:
 - [Refactorings done, if applicable]
 ```
 
-### 8. Finalize
+### 7. Finalize
 
 Determine next phase (check `skip_phases` in `.tdd-state.local.json`):
 - If `4-docs` not skipped → set `current.phase` = "docs"
@@ -162,7 +152,7 @@ public class ProcessorFactory { }
 
 // Premature optimization
 public class CachedImporter // No cache test = no cache
-// -> Unless .tdd-context.md > Implementation mentions cache
+// -> Unless .tdd-context.md > Design mentions cache
 
 // Omitting planned scope
 // Context: "Rename CustomGrid -> PresetGrid everywhere"
@@ -181,7 +171,40 @@ Ask user which approach to follow.
 
 **Features without tests (UI, CSS, refactorings):**
 - Implement anyway if mentioned in `.tdd-context.md`
-- Example: WindowSettingsModal without tests -> implement per `Implementation`
+- Example: WindowSettingsModal without tests -> implement per `Design`
 - Example: CSS for toolbar -> implement per specifications
 - Example: Renames CustomGrid -> PresetGrid -> do all renames
 - Tests validate core behavior, not complete UI
+
+**Test passes without code change:**
+- Test may be wrong (tests language, not our code)
+- Feature may already exist elsewhere
+- → Verify test is meaningful, ask user if unclear
+
+**Test impossible to pass without breaking another:**
+- Design conflict between tests
+- → STOP, do not hack around it, ask user
+
+**Implementation reveals incorrect test:**
+- Test assumptions don't match reality (wrong signature, impossible state)
+- → STOP, explain the issue, propose test correction
+
+**Circular dependency discovered:**
+- Implementation requires import that creates cycle
+- → STOP, architectural decision needed
+
+## Warning signs (STOP and ask)
+
+**STOP implementation and ask user if:**
+- 3+ failed attempts to pass the same test
+- Need to modify a test to make it pass
+- Need to modify files NOT listed in `.tdd-context.md`
+- Implementation requires adding dependencies not mentioned in context
+- Two tests contradict each other
+- Scope creep: implementation growing significantly beyond context
+
+**Do NOT:**
+- Loop indefinitely trying different approaches
+- Modify tests to make them pass
+- Add files/features outside defined scope
+- Assume and proceed when uncertain
