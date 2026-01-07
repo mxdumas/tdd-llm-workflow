@@ -7,7 +7,7 @@ Generate final README.md by synthesizing all project documentation.
 ### 1. Load available context
 
 Check and read if present:
-- `CLAUDE.md` - Overview, stack, commands
+- `{{AGENT_FILE}}` - Overview, stack, commands
 - `docs/dev/architecture.md` - Technical architecture
 - `docs/dev/standards.md` - Conventions
 - `docs/epics/*.md` - Planned features
@@ -58,7 +58,7 @@ Create `README.md` at root:
 ```markdown
 # {Project name}
 
-{Description in 1-2 sentences - extracted from CLAUDE.md}
+{Description in 1-2 sentences - extracted from {{AGENT_FILE}}}
 
 ## Features
 
@@ -173,7 +173,7 @@ Add deployment info if relevant.
 ```
 {project}/
 ├── README.md
-├── CLAUDE.md
+├── {{AGENT_FILE}}
 ├── CHANGELOG.md
 └── docs/
     ├── state.json

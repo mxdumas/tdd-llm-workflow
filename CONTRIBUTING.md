@@ -74,21 +74,23 @@ git push --tags
 
 1. Create `src/tdd_llm/templates/placeholders/langs/<lang>/`
 2. Add required files:
-   - `BUILD_COMMANDS.md`
-   - `BUILD_TEST_CMD.md`
-   - `COVERAGE_CMD.md`
-   - `TEST_EXAMPLE.md`
-   - `MOCK_EXAMPLE.md`
-   - `DOC_FORMAT.md`
-   - `STANDARDS_QUESTIONS.md`
+   - `BUILD_COMMANDS.md` - Build, test, and coverage commands
+   - `STANDARDS_QUESTIONS.md` - Language-specific setup questions
+   - `ARCH_TEST_EXAMPLE.md` - Architecture test example
+   - `INTEGRATION_TEST_EXAMPLE.md` - Integration test example
+   - `PERF_TEST_EXAMPLE.md` - Performance test example
+   - `RED_STRATEGY.md` - How to verify RED state (tests fail)
 
 ## Adding a New Backend
 
 1. Create `src/tdd_llm/templates/placeholders/backends/<backend>/`
 2. Add required files:
-   - `STATE_READ.md`
-   - `STATE_UPDATE.md`
-   - `EPIC_SOURCE.md`
+   - `STATE_READ.md` - How to read state
+   - `STATE_UPDATE.md` - How to update state
+   - `EPIC_SOURCE.md` - Where epics come from
+   - `TASK_SOURCE.md` - Where tasks come from
+   - `BRANCH_FORMAT.md` - Git branch naming format
+   - `ARCHIVE_CONTEXT.md` - How to archive completed context
 
 ## Commit Messages
 

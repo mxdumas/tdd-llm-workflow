@@ -7,10 +7,10 @@ Define code conventions based on project stack.
 ### 1. Load context (if available)
 
 Check and read if present:
-- `CLAUDE.md` - Tech stack, structure
+- `{{AGENT_FILE}}` - Tech stack, structure
 - `docs/dev/architecture.md` - Chosen patterns
 
-**If `CLAUDE.md` doesn't exist**, ask basic questions:
+**If `{{AGENT_FILE}}` doesn't exist**, ask basic questions:
 ```
 Before defining standards, I need some info:
 
@@ -92,8 +92,6 @@ The project follows Test-Driven Development:
 - Naming: `{chosen convention}`
 - Structure: {AAA/GWT/free}
 
-{{TEST_EXAMPLE}}
-
 ### Coverage
 
 - Each public behavior must have a test
@@ -140,9 +138,9 @@ The project follows Test-Driven Development:
 - Epic: `e{n}-t{m}` (task branches)
 ```
 
-### 4. Update CLAUDE.md
+### 4. Update {{AGENT_FILE}}
 
-Add a "Conventions" section in `CLAUDE.md` with key points:
+Add a "Conventions" section in `{{AGENT_FILE}}` with key points:
 - Naming rules
 - Required patterns
 - What to avoid
@@ -168,7 +166,7 @@ Add a "Conventions" section in `CLAUDE.md` with key points:
 
 **Files created/updated:**
 - `docs/dev/standards.md`
-- `CLAUDE.md` (Conventions section)
+- `{{AGENT_FILE}}` (Conventions section)
 
 **Next step:** `/tdd:init:4-readme`
 ```

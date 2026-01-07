@@ -8,100 +8,75 @@ Finalize task: state updates and archiving.
 
 Read `.tdd-context.md` (lightweight).
 
-Verify `.tdd-state.local.json`: `current.phase` must be "review".
+Verify `.tdd-state.local.json`: `current.phase` must be "done".
 
-### 2. Final verification
-
-{{BUILD_TEST_CMD}}
-
-If failure: don't continue, fix first.
-
-### 3. Update `docs/state.json`
+### 2. Update state
 
 {{STATE_UPDATE}}
 
-Add completed task:
+**In `docs/state.json`:**
 
 ```json
 {
   "epics": {
-    "E{N}": {
+    "{epic_id}": {
       "status": "in_progress",
-      "completed": ["T1", "T2", "T3", "T{M}"]  // Add task
+      "completed": [..., "{task_id}"]
     }
   }
 }
 ```
 
-**If all epic tasks are completed:**
-- Set `epics[E{N}].status` = "completed"
+If all epic tasks completed: set `status` = "completed".
 
-### 4. Reset `.tdd-state.local.json`
+**Reset `.tdd-state.local.json`:**
 
 ```json
 {
   "current": {
-    "epic": "E{N}",  // or E{N+1} if epic finished
+    "epic": "{epic_id}",
     "task": null,
-    "phase": null
+    "phase": null,
+    "skip_phases": []
   }
 }
 ```
 
-### 5. Archive `.tdd-context.md`
+### 3. Archive context
 
-Copy `.tdd-context.md` to `docs/epics/E{N}/T{M}-context.md`
+{{ARCHIVE_CONTEXT}}
 
-### 6. Enrich `.tdd-epic-context.md`
+Update `.tdd-epic-context.md` status:
 
-Read `.tdd-epic-context.md` and add/update:
-
-**A. Status:**
 ```markdown
 ## Status
-- Epic: E{N} | Tasks: T1, T2, T{M}
-- Last updated: {date} (T{M})
+- Epic: {epic_id} | Completed: [task_list]
+- Last updated: {date} ({task_id})
 ```
 
-**B. Architectural decisions** (if new):
-```markdown
-### AD-{N}: {Title} (T{M})
-- {Description}
-- Reason: {Justification}
-```
-
-**C. Defined interfaces** (if new):
-```markdown
-### {InterfaceName} (T{M})
-{Interface definition}
-```
-
-### 7. Commit and push
+### 4. Commit state changes
 
 ```bash
-git add .
-git commit --amend --no-edit
-git push --force-with-lease
+git add docs/state.json .tdd-state.local.json .tdd-epic-context.md docs/epics/
+git commit -m "{task_id}: finalize"
+git push
 ```
 
-### 8. Final report
+### 5. Final report
 
 ```
-## Done: [E{N}] T{M} - Title
+## Done: {task_id} - Title
 
 **PR:** #{N} - {URL}
-**Epic E{N}:** [X]/[Y] tasks completed
+**Epic {epic_id}:** [X]/[Y] tasks completed
 
-**Next steps:**
-1. Review/merge PR
-2. `git checkout main && git pull`
-3. `/tdd:flow:1-analyze` for T{M+1}
+**Next:** Merge PR, then `git checkout main && git pull`, then `/tdd:flow:1-analyze`
 ```
 
-**If epic finished:**
+**If epic completed:**
 ```
-## Epic E{N} completed
+## Epic {epic_id} completed
 
-**Tasks:** T1-T{X} (all completed)
-**Next epic:** E{N+1} - {name}
+**Tasks:** All [N] completed
+**Next epic:** {next_epic_id} - {name}
 ```

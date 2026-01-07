@@ -6,6 +6,7 @@ from tdd_llm.config import Config, CoverageThresholds
 from tdd_llm.placeholder import (
     find_placeholders,
     get_config_placeholder,
+    get_platform_placeholder,
     load_placeholder,
     replace_placeholders,
     get_all_placeholders_for_lang,
@@ -86,14 +87,43 @@ class TestGetConfigPlaceholder:
         assert result is None
 
 
+class TestGetPlatformPlaceholder:
+    """Tests for get_platform_placeholder function."""
+
+    def test_agent_file_claude(self):
+        """Test AGENT_FILE returns CLAUDE.md for claude platform."""
+        result = get_platform_placeholder("AGENT_FILE", "claude")
+        assert result == "CLAUDE.md"
+
+    def test_agent_file_gemini(self):
+        """Test AGENT_FILE returns GEMINI.md for gemini platform."""
+        result = get_platform_placeholder("AGENT_FILE", "gemini")
+        assert result == "GEMINI.md"
+
+    def test_agent_file_none_platform(self):
+        """Test AGENT_FILE returns None when platform is None."""
+        result = get_platform_placeholder("AGENT_FILE", None)
+        assert result is None
+
+    def test_unknown_placeholder_returns_none(self):
+        """Test unknown placeholder returns None."""
+        result = get_platform_placeholder("UNKNOWN", "claude")
+        assert result is None
+
+
 class TestLoadPlaceholder:
     """Tests for load_placeholder function."""
 
     def test_load_lang_placeholder(self):
         """Test loading language-specific placeholder."""
-        result = load_placeholder("BUILD_TEST_CMD", lang="python", backend=None)
+        result = load_placeholder("BUILD_COMMANDS", lang="python", backend=None)
         assert result is not None
         assert "pytest" in result
+
+    def test_load_platform_placeholder(self):
+        """Test loading platform-specific placeholder."""
+        result = load_placeholder("AGENT_FILE", lang=None, backend=None, platform="claude")
+        assert result == "CLAUDE.md"
 
     def test_load_backend_placeholder(self):
         """Test loading backend-specific placeholder."""
@@ -126,11 +156,19 @@ class TestReplacePlaceholders:
 
     def test_replace_lang_placeholder(self):
         """Test replacing language placeholder."""
-        content = "Run: {{BUILD_TEST_CMD}}"
+        content = "Run: {{BUILD_COMMANDS}}"
         result = replace_placeholders(content, lang="python")
 
-        assert "{{BUILD_TEST_CMD}}" not in result
+        assert "{{BUILD_COMMANDS}}" not in result
         assert "pytest" in result
+
+    def test_replace_platform_placeholder(self):
+        """Test replacing platform-specific placeholder."""
+        content = "Agent file: {{AGENT_FILE}}"
+        result = replace_placeholders(content, platform="claude")
+
+        assert "{{AGENT_FILE}}" not in result
+        assert "CLAUDE.md" in result
 
     def test_replace_config_placeholder(self):
         """Test replacing config-based placeholder."""
@@ -160,10 +198,10 @@ class TestReplacePlaceholders:
     def test_replace_multiple_placeholders(self):
         """Test replacing multiple placeholders."""
         config = Config()
-        content = "Test: {{BUILD_TEST_CMD}}\nCoverage: {{COVERAGE_THRESHOLDS}}"
+        content = "Test: {{BUILD_COMMANDS}}\nCoverage: {{COVERAGE_THRESHOLDS}}"
         result = replace_placeholders(content, lang="python", config=config)
 
-        assert "{{BUILD_TEST_CMD}}" not in result
+        assert "{{BUILD_COMMANDS}}" not in result
         assert "{{COVERAGE_THRESHOLDS}}" not in result
         assert "pytest" in result
         assert "80%" in result
@@ -176,16 +214,16 @@ class TestGetAllPlaceholders:
         """Test getting all placeholders for Python."""
         placeholders = get_all_placeholders_for_lang("python")
 
-        assert "BUILD_TEST_CMD" in placeholders
-        assert "COVERAGE_CMD" in placeholders
-        assert "TEST_EXAMPLE" in placeholders
+        assert "BUILD_COMMANDS" in placeholders
+        assert "STANDARDS_QUESTIONS" in placeholders
+        assert "pytest" in placeholders["BUILD_COMMANDS"]
 
     def test_get_all_placeholders_for_csharp(self):
         """Test getting all placeholders for C#."""
         placeholders = get_all_placeholders_for_lang("csharp")
 
-        assert "BUILD_TEST_CMD" in placeholders
-        assert "dotnet" in placeholders["BUILD_TEST_CMD"]
+        assert "BUILD_COMMANDS" in placeholders
+        assert "dotnet" in placeholders["BUILD_COMMANDS"]
 
     def test_get_all_placeholders_for_files_backend(self):
         """Test getting all placeholders for files backend."""

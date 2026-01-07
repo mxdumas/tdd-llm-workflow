@@ -127,9 +127,9 @@ Updated templates are cached in:
 
 | Language | Placeholders |
 |----------|--------------|
-| Python | pytest, coverage, mock examples |
-| C# | dotnet test, xUnit, Moq examples |
-| TypeScript | Jest, coverage, mock examples |
+| Python | pytest, coverage, architecture/integration/perf tests |
+| C# | dotnet test, xUnit, architecture/integration/perf tests |
+| TypeScript | Jest, Vitest, architecture/integration/perf tests |
 
 ## Backends
 
@@ -155,12 +155,11 @@ After deployment, use these commands with Claude or Gemini:
 |---------|-------|-------------|
 | `/tdd:flow:1-analyze` | Plan | Analyze task, write specs |
 | `/tdd:flow:2-test` | RED | Write failing tests |
-| `/tdd:flow:3-dev` | GREEN | Implement to pass tests |
+| `/tdd:flow:3-dev` | GREEN+REFACTOR | Implement, then refactor |
 | `/tdd:flow:4-docs` | Document | Update docs, CHANGELOG |
 | `/tdd:flow:5-review` | Review | Code review, create PR |
 | `/tdd:flow:6-done` | Done | Commit, update state |
 | `/tdd:flow:status` | - | Show current progress |
-| `/tdd:flow:next` | - | Auto-execute next step |
 
 ### Init Commands
 

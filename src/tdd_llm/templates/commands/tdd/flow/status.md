@@ -8,7 +8,7 @@ Display current TDD project state: current epic, task, phase, progress.
 
 Read in parallel:
 - `docs/state.json` (global state: epics, completed tasks)
-- `.tdd-state.local.json` (local state: current task, phase)
+- `.tdd-state.local.json` (local state: current task, phase, skip_phases)
 
 {{STATE_READ}}
 
@@ -25,19 +25,21 @@ If `.tdd-state.local.json` doesn't exist -> create with:
 ```json
 {
   "current": {
-    "epic": "E{last in_progress or first not_started epic}",
+    "epic": "{first in_progress or not_started epic}",
     "task": null,
-    "phase": null
+    "phase": null,
+    "skip_phases": []
   }
 }
 ```
 
+`skip_phases` is an array of phase names to skip (e.g., `["test", "docs"]`).
+
 ### 2. Load context
 
-Read in parallel:
-- Current epic file (`docs/epics/E{N}.md`)
-- `.tdd-context.md` (if exists)
-- `.tdd-epic-context.md` (if exists)
+Read in parallel (if exists):
+- `.tdd-context.md`
+- `.tdd-epic-context.md`
 
 ### 3. Display status
 
@@ -48,26 +50,24 @@ git branch --show-current  # Show current branch
 ```
 ## TDD Status
 
-**Epic:** E{N} - {Epic name}
-**Task:** {T{M} - {Name} | No task in progress}
-**Branch:** {e{N}-t{M} | main}
-**Phase:** {phase | Ready for /tdd:flow:1-analyze}
+**Epic:** {epic_id} - {Epic name}
+**Task:** {task_id} - {Name} | No task in progress
+**Branch:** {task_id} | main
+**Phase:** {phase} | Ready for /tdd:flow:1-analyze
 
-### E{N} Progress
+### {epic_id} Progress
 
 {ASCII progress bar}
 {completed}/{total} tasks ({percentage}%)
 
-Completed: {list T1, T2, ...}
-Remaining: {list T3, T4, ...}
+Completed: {list}
+Remaining: {list}
 
 ### Global Progress
 
 | Epic | Name | Status | Progress |
 |------|------|--------|----------|
-| E0 | Foundation | completed | 3/3 |
-| E1 | {Name} | in_progress | 2/5 |
-| E2 | {Name} | not_started | 0/4 |
+| {epic_id} | {Name} | in_progress | X/Y |
 | ... | ... | ... | ... |
 
 ### Next action
@@ -80,18 +80,19 @@ Remaining: {list T3, T4, ...}
 | Current phase | Suggestion |
 |---------------|------------|
 | `null` | Run `/tdd:flow:1-analyze` to start next task |
-| `analyze` | Continue analysis or run `/tdd:flow:1-analyze` |
+| `analyze` | Analysis in progress - run `/tdd:flow:2-test` when ready |
 | `test` | Run `/tdd:flow:2-test` to write tests |
 | `dev` | Run `/tdd:flow:3-dev` to implement |
 | `docs` | Run `/tdd:flow:4-docs` to document |
 | `review` | Run `/tdd:flow:5-review` to validate and create PR |
+| `done` | Run `/tdd:flow:6-done` to finalize |
 
 ### 5. Show current task info (if applicable)
 
 If `.tdd-context.md` exists and a task is in progress:
 
 ```
-### Current task: T{M} - {Title}
+### Current task: {task_id} - {Title}
 
 **Objective:** {objective summary}
 
@@ -102,16 +103,13 @@ If `.tdd-context.md` exists and a task is in progress:
 
 ### 6. Show epic context (if applicable)
 
-If `.tdd-epic-context.md` exists:
+If `.tdd-epic-context.md` exists, show its status section:
 
 ```
-### Epic E{N} Context
+### Epic {epic_id} Context
 
-**Architectural decisions:** {N} decisions
-**Defined interfaces:** {list of interface names}
-**Established patterns:** {short list}
-
-Last updated: {date} (T{M})
+Completed tasks: [list]
+Last updated: {date} ({task_id})
 ```
 
 ## Progress bar format

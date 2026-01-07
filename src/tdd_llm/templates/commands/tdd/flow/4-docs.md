@@ -8,7 +8,7 @@ Document the completed task.
 
 Read `.tdd-context.md` (lightweight).
 
-Verify `.tdd-state.local.json`: `current.phase` must be "green".
+Verify `.tdd-state.local.json`: `current.phase` must be "docs".
 
 ### 2. Update CHANGELOG.md
 
@@ -17,7 +17,6 @@ Verify `.tdd-state.local.json`: `current.phase` must be "green".
 - Format: `- [Module]: description of change`
 - Be **specific** (mention classes/methods)
 - Write from user/developer perspective
-- See good entry examples at end of document
 
 **Example:**
 ```markdown
@@ -26,77 +25,94 @@ Verify `.tdd-state.local.json`: `current.phase` must be "green".
 - `FixtureType.Wheels` collection for accessing fixture wheel definitions
 ```
 
-### 3. Verify documentation
+### 3. Verify code documentation
 
-**Read created files** (from `.tdd-context.md > Files > Create`).
+**Read created/modified files** (from `.tdd-context.md > Files`).
 
 **If public APIs:**
-- Verify all public types/methods have documentation
+- Verify all public types/methods have documentation (docstrings, JSDoc, XML docs)
+- Follow existing format in the project (check similar files)
 - Add those that are missing
 
-{{DOC_FORMAT}}
+### 4. Check documentation to update
 
-### 4. Evaluate if ADR needed
+**Read `{{AGENT_FILE}}` section "Documentation Structure"** for project doc locations.
+
+For each documentation type listed:
+- Check if task changes require an update
+- If yes, update now
+
+**If section not found in `{{AGENT_FILE}}`:** Discover doc structure and add it:
+```bash
+# Find doc directories
+find . -type d -name "doc*" -o -name "wiki" -o -name "help" 2>/dev/null | head -10
+```
+
+**Common doc types:**
+
+| Type | Update if... |
+|------|--------------|
+| **Dev docs** (`docs/dev/`, `docs/api/`) | API changes, new patterns |
+| **User docs** (`docs/user/`, `help/`) | UI changes, new features, behavior changes |
+| **API specs** (`openapi.yaml`, `swagger.json`) | Endpoint changes |
+| **Project context** (`README.md`, `{{AGENT_FILE}}`) | Important patterns, setup changes |
+
+### 5. Validate existing examples
+
+**If task modified public APIs:**
+- Search docs for code examples using changed functions/classes
+- Verify examples still work after changes
+- Update outdated examples
+
+### 6. Evaluate if ADR needed
 
 **Read `.tdd-context.md > Decisions`.**
 
 **Create ADR if:**
 - Choice between multiple valid approaches
-- Decision that impacts multiple modules
+- Decision impacts multiple modules
 - Significant trade-off (performance vs simplicity)
 
 **Don't create if:**
 - Standard implementation without alternative
 - Decision local to one file
-- Obvious choice without trade-off
 
 **If ADR needed:**
-- Create in `docs/dev/decisions/`
-- Use template if exists
+- Find existing ADRs location (usually `docs/dev/decisions/` or `docs/adr/`)
+- Use project's ADR template if exists
 - Numbering: next available number
 
-### 5. Check existing docs
-
-| Document | Update if... |
-|----------|--------------|
-| `docs/dev/api/*.md` | New API / modification to API / important module |
-| `docs/user/**.md` | User-facing documentation -> must be updated when impact UI changes |
-| `docs/dev/architecture.md` | Important architecture change |
-| `README.md` or `CLAUDE.md` | Important changes to communicate to LLM |
-
-If update needed: do it now.
-
-### 6. Update .tdd-context.md
+### 7. Update .tdd-context.md
 
 Add final section:
 
 ```markdown
 ## Documentation
 - CHANGELOG updated ([Added/Changed/Fixed])
-- Docs complete
-- ADR created: [NNN-title] / Not needed
+- Code docs: Complete
+- ADR: [NNN-title] / Not needed
 - Other docs: [list] / None
 ```
 
-### 7. Update phase
+### 8. Update phase
 
-Set `current.phase` = "docs" in `.tdd-state.local.json`.
+Set `current.phase` = "review" in `.tdd-state.local.json`.
 
-### 8. Report
+### 9. Report
 
 ```
-## Documentation: [E1] T4 - Title
+## Documentation: {task_id} - Title
 
 ### Updated
 - `CHANGELOG.md` - Section [Added/Changed/Fixed]
-- Docs - [N] added / Already complete
+- Code docs: [N] added / Already complete
+- [list any other docs updated]
 
 ### Created
-- `docs/dev/decisions/[NNN-title].md` / No ADR needed
+- `docs/decisions/[NNN-title].md` / No ADR needed
 
 ### Verified (no change needed)
-- `docs/dev/architecture.md`
-- `README.md`
+- [list docs checked]
 
 Run `/tdd:flow:5-review` for review and PR creation.
 ```
@@ -119,15 +135,3 @@ Run `/tdd:flow:5-review` for review and PR creation.
 - Added wheels
 - New feature
 ```
-
-## When to create an ADR
-
-**Create:**
-- Choice between multiple valid approaches
-- Decision that impacts multiple modules
-- Significant trade-off (performance vs simplicity)
-
-**Don't create:**
-- Standard implementation without alternative
-- Decision local to one file
-- Obvious choice without trade-off

@@ -1,184 +1,91 @@
 # /tdd:flow:3-dev
 
-You are a Senior Developer. Your goal is to make tests pass simply (KISS). Implement code to pass tests (GREEN phase).
-
-**Clean code from the start.** Simple != ugly. Minimal = no superfluous, no technical debt.
+Senior Developer. Make tests pass simply (GREEN phase).
+Clean code from the start. Simple != ugly. Minimal = no superfluous.
 
 ## Instructions
 
 ### 1. Load context
 
-Read `.tdd-context.md` (current task context).
-
-Read `.tdd-epic-context.md` (epic context):
-- Interfaces defined in previous tasks (to respect)
-- Established patterns and conventions
-- Architectural decisions to follow
-
-Read `docs/dev/standards.md` for formatting conventions.
+Read `.tdd-context.md`, `.tdd-epic-context.md`, `docs/dev/standards.md`.
 
 Verify `.tdd-state.local.json`: `current.phase` must be "dev".
 
-### 2. Read tests first
+### 2. Implement
 
-Read test files created in RED phase.
-
-**Role of tests:**
-- Tests VALIDATE behavior (what MUST pass)
-- Tests don't LIMIT scope (there may be more than what's tested)
-- COMPLETE scope is in `.tdd-context.md > Files` + `Implementation`
-
-**Understand from tests:**
-- Expected API (signatures, types)
-- Verified behaviors
-- Error cases to handle
-
-**Attention:** If `.tdd-context.md` mentions files/features without tests (UI, CSS, refactorings), they MUST STILL be implemented.
-
-### 3. Implement
+**Scope = `.tdd-context.md`** (files + design), not just what's tested.
+Tests validate, they don't limit. Implement UI, CSS, refactors even without tests.
 
 **Order:**
-1. Create files listed in `.tdd-context.md > Files > Create` (code, not tests)
-2. Modify files listed in "Modify" (if applicable)
+1. Create files listed in `Files > Create` (code, not tests)
+2. Modify files in `Modify`
+3. Follow `Design > Logic`
 
-**Principles:**
+**Do:** Clean code, clear names, follow patterns from context.
 
-| Principle | Description |
-|-----------|-------------|
-| **Completeness** | Implement EVERYTHING defined in `.tdd-context.md` (files + implementation), even if not tested |
-| **YAGNI** | Do NOT add features beyond context |
-| **KISS** | Simplest solution that works |
+**Don't:** Features not in context. Premature optimization. Over-engineering.
 
-**Do:**
-- Clean and readable code from the start
-- Follow conventions from `.tdd-context.md > Key conventions`
-- Follow pattern from `.tdd-context.md > Implementation`
-- Implement ALL of the "Implementation" section from context
-- Clear names
+### 3. Make tests pass (GREEN)
 
-**Don't:**
-- Omit planned elements from context because they're not tested
-- Features NOT MENTIONED in context
-- Premature optimization
-- Gold plating (bonus features not requested)
-- Over-engineering (useless abstractions)
+Run tests. **Iterate** until 100% pass. Fix implementation, not tests.
 
-### 4. Verify scope completeness
+### 4. Refactor
 
-**IMPORTANT: Before testing, verify ALL scope is implemented.**
+Tests pass. Now clean up without changing behavior.
 
-Read `.tdd-context.md` entirely:
-- Section **Files > Create** - all files created?
-- Section **Files > Modify** - all modifications done?
-- Section **Implementation** - all approaches/patterns implemented?
+**Look for:**
+- Duplicated code → extract function/method
+- Long functions → split by responsibility
+- Magic values → named constants
+- Poor names → rename for clarity
+- Dead code → remove
 
-**Verification in 2 passes:**
+**Rules:**
+- Run tests after each change
+- Small steps, one refactor at a time
+- If tests break → revert, try smaller step
 
-**A) Files (Create + Modify):**
-- Verify each file exists (Create) or has been modified (Modify)
-- Ignore test files (already created in RED phase)
-- If files missing -> STOP, implement first
+**Skip if:** Code is already clean, or task is S complexity.
 
-**B) Content (Implementation):**
-- Read section `.tdd-context.md > Implementation`
-- Verify EACH described element is implemented:
-  - All described interfaces/classes
-  - All described patterns/approaches
-  - All described refactorings (renames, etc.)
-  - All described UI features (even without tests)
-- If elements missing -> STOP, list and implement
+### 5. Update .tdd-context.md
 
-**If scope complete (files + content):** Continue
-
-### 5. Make tests pass
-
-{{BUILD_TEST_CMD}}
-
-**If failure:**
-1. Read error message
-2. Fix implementation (not the test)
-3. Re-test
-
-**Iterate** until 100% pass.
-
-### 6. Final verification
-
-{{BUILD_TEST_CMD}}
-
-### 7. Update .tdd-context.md
-
-Add section after `## Implementation`:
+Add after `## Design`:
 
 ```markdown
 ### GREEN Result
-- Files created: [N] ([list with types: Core, UI, Tests])
-- Files modified: [N] ([list or "None"])
-- Tests: [N]/[N] passed (GREEN)
-- Build: OK, no errors
-
-**Implemented files:**
-1. [Path] - [Description]
-...
-
-**Implementation notes:**
-- [Any important decision or deviation from plan]
-- [UI features implemented without tests, if applicable]
-- [Refactorings done, if applicable]
+- Tests: [N]/[N] passed
+- Build: OK
+- Refactored: [List changes, or "None"]
 ```
 
-### 8. Finalize
+### 6. Finalize
 
-Set `current.phase` = "review" in `.tdd-state.local.json`.
+Determine next phase (check `skip_phases` in `.tdd-state.local.json`):
+- If `4-docs` not skipped → set `current.phase` = "docs"
+- Else → set `current.phase` = "review"
 
 ```
-## GREEN: [E1] T4 - Title
+## GREEN: {task_id} - Title
 
-**Files created:** [N]
-**Files modified:** [N]
 **Tests:** [N]/[N] passed
 
 Run `/tdd:flow:4-docs` to document.
+     Or `/tdd:flow:5-review` if docs phase skipped.
 ```
 
-## Anti-patterns
+## When to stop and ask
 
-```
-// Gold plating - feature NOT MENTIONED in context
-public void Import(string path, bool validate = true, ILogger? logger = null)
-// -> If .tdd-context.md doesn't mention validate/logger, don't add them
+**STOP and ask user if:**
+- 3+ failed attempts on same test
+- Need to modify a test to pass
+- Need files not listed in `.tdd-context.md`
+- Two tests contradict each other
+- Test assumptions don't match reality (wrong signature, impossible state)
+- Circular dependency discovered
+- Scope creep: implementation growing beyond context
 
-// But if .tdd-context.md mentions a feature WITHOUT test, implement it
-// Context: "Add CSS toolbar with responsive 200px"
-// -> Implement even if no CSS test
-
-// Over-engineering - abstractions not mentioned
-public interface IProcessor { }
-public class Processor : IProcessor { }
-public class ProcessorFactory { }
-// -> Direct and simple if context doesn't require this structure
-
-// Premature optimization
-public class CachedImporter // No cache test = no cache
-// -> Unless .tdd-context.md > Implementation mentions cache
-
-// Omitting planned scope
-// Context: "Rename CustomGrid -> PresetGrid everywhere"
-// Code: Only rename in tested files
-// -> Rename EVERYWHERE as requested, even files without tests
-```
-
-## Difficult situations
-
-**Ambiguous test:**
-Ask user which approach to follow.
-
-**Design problem revealed:**
-- If simple: resolve now
-- If complex: ask before continuing
-
-**Features without tests (UI, CSS, refactorings):**
-- Implement anyway if mentioned in `.tdd-context.md`
-- Example: WindowSettingsModal without tests -> implement per `Implementation`
-- Example: CSS for toolbar -> implement per specifications
-- Example: Renames CustomGrid -> PresetGrid -> do all renames
-- Tests validate core behavior, not complete UI
+**Do NOT:**
+- Loop indefinitely trying approaches
+- Modify tests to make them pass
+- Add files/features outside scope
+- Assume and proceed when uncertain
