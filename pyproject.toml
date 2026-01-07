@@ -9,9 +9,6 @@ description = "Deploy TDD workflow templates for Claude and Gemini AI assistants
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-authors = [
-    { name = "Maxim", email = "maxim@example.com" }
-]
 keywords = ["tdd", "claude", "gemini", "ai", "workflow", "templates"]
 classifiers = [
     "Development Status :: 3 - Alpha",
