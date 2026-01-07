@@ -46,11 +46,11 @@ def get_platform_placeholder(name: str, platform: str | None) -> str | None:
         return None
 
     if name == "AGENT_FILE":
-        if platform == "claude":
-            return "CLAUDE.md"
-        elif platform == "gemini":
-            return "GEMINI.md"
-        return None
+        platform_files = {
+            "claude": "CLAUDE.md",
+            "gemini": "GEMINI.md",
+        }
+        return platform_files.get(platform)
 
     return None
 

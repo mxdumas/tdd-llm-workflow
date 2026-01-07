@@ -16,7 +16,10 @@ Run build and tests. Fix any failures before continuing.
 ### 3. Verify coverage
 
 Run coverage (command from `docs/dev/standards.md`).
-Ensure thresholds are met. If not, add missing tests first.
+
+{{COVERAGE_THRESHOLDS}}
+
+If not met, add missing tests first.
 
 ### 4. Commit and Push
 
