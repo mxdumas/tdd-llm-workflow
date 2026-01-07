@@ -198,7 +198,7 @@ def _deploy_to_platform(
 
         # Replace placeholders
         processed = placeholder.replace_placeholders(
-            content, lang, backend, config, no_cache=no_cache
+            content, lang, backend, config, no_cache=no_cache, platform=platform
         )
         found_placeholders = placeholder.find_placeholders(content)
         remaining_placeholders = placeholder.find_placeholders(processed)

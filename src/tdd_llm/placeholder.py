@@ -32,6 +32,29 @@ def find_placeholders(content: str) -> set[str]:
     return set(PLACEHOLDER_PATTERN.findall(content))
 
 
+def get_platform_placeholder(name: str, platform: str | None) -> str | None:
+    """Get placeholder value based on platform.
+
+    Args:
+        name: Placeholder name.
+        platform: Platform name ("claude" or "gemini").
+
+    Returns:
+        Platform-specific placeholder content or None if not a platform placeholder.
+    """
+    if platform is None:
+        return None
+
+    if name == "AGENT_FILE":
+        if platform == "claude":
+            return "CLAUDE.md"
+        elif platform == "gemini":
+            return "GEMINI.md"
+        return None
+
+    return None
+
+
 def get_config_placeholder(name: str, config: Config | None) -> str | None:
     """Get placeholder value from config.
 
@@ -63,13 +86,15 @@ def load_placeholder(
     backend: str | None,
     config: Config | None = None,
     no_cache: bool = False,
+    platform: str | None = None,
 ) -> str | None:
     """Load placeholder content from config, cache, or package.
 
     Searches in order:
-    1. Config-based placeholder (for configurable values like thresholds)
-    2. Cached placeholder files (from tdd-llm update)
-    3. Package placeholder files (bundled with package)
+    1. Platform-based placeholder (for platform-specific values like agent file)
+    2. Config-based placeholder (for configurable values like thresholds)
+    3. Cached placeholder files (from tdd-llm update)
+    4. Package placeholder files (bundled with package)
 
     Args:
         name: Placeholder name (e.g., "TESTING_FRAMEWORK").
@@ -77,11 +102,17 @@ def load_placeholder(
         backend: Backend name (e.g., "jira").
         config: Config instance for config-based placeholders.
         no_cache: If True, skip cached placeholders and use package only.
+        platform: Platform name ("claude" or "gemini") for platform-specific placeholders.
 
     Returns:
         Placeholder content or None if not found.
     """
-    # Try config-based placeholder first
+    # Try platform-based placeholder first
+    platform_value = get_platform_placeholder(name, platform)
+    if platform_value is not None:
+        return platform_value
+
+    # Try config-based placeholder
     config_value = get_config_placeholder(name, config)
     if config_value is not None:
         return config_value
@@ -121,6 +152,7 @@ def replace_placeholders(
     config: Config | None = None,
     remove_unfound: bool = True,
     no_cache: bool = False,
+    platform: str | None = None,
 ) -> str:
     """Replace all placeholders in content.
 
@@ -132,6 +164,7 @@ def replace_placeholders(
         remove_unfound: If True, remove placeholders without replacements.
                        If False, leave them as-is.
         no_cache: If True, skip cached placeholders and use package only.
+        platform: Platform name ("claude" or "gemini") for platform-specific placeholders.
 
     Returns:
         Content with placeholders replaced.
@@ -139,7 +172,7 @@ def replace_placeholders(
     placeholders = find_placeholders(content)
 
     for name in placeholders:
-        replacement = load_placeholder(name, lang, backend, config, no_cache)
+        replacement = load_placeholder(name, lang, backend, config, no_cache, platform)
 
         if replacement is not None:
             content = content.replace(f"{{{{{name}}}}}", replacement)

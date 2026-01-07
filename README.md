@@ -160,7 +160,6 @@ After deployment, use these commands with Claude or Gemini:
 | `/tdd:flow:5-review` | Review | Code review, create PR |
 | `/tdd:flow:6-done` | Done | Commit, update state |
 | `/tdd:flow:status` | - | Show current progress |
-| `/tdd:flow:next` | - | Auto-execute next step |
 
 ### Init Commands
 

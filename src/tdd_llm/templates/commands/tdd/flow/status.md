@@ -77,7 +77,7 @@ Remaining: {list}
 | Current phase | Suggestion |
 |---------------|------------|
 | `null` | Run `/tdd:flow:1-analyze` to start next task |
-| `analyze` | Continue analysis or run `/tdd:flow:1-analyze` |
+| `analyze` | Analysis in progress - run `/tdd:flow:2-test` when ready |
 | `test` | Run `/tdd:flow:2-test` to write tests |
 | `dev` | Run `/tdd:flow:3-dev` to implement |
 | `docs` | Run `/tdd:flow:4-docs` to document |
@@ -100,15 +100,12 @@ If `.tdd-context.md` exists and a task is in progress:
 
 ### 6. Show epic context (if applicable)
 
-If `.tdd-epic-context.md` exists:
+If `.tdd-epic-context.md` exists, show its status section:
 
 ```
 ### Epic {epic_id} Context
 
-**Architectural decisions:** {N} decisions
-**Defined interfaces:** {list of interface names}
-**Established patterns:** {short list}
-
+Completed tasks: [list]
 Last updated: {date} ({task_id})
 ```
 

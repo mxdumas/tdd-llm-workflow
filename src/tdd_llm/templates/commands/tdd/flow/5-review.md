@@ -1,103 +1,50 @@
 # /tdd:flow:5-review
 
-Code review phase and PR creation.
+Code review and PR creation.
 
 ## Instructions
 
 ### 1. Load context
 
-Read `.tdd-context.md` (current task context).
-Read `.tdd-epic-context.md` (epic context).
+Read `.tdd-context.md` and `.tdd-epic-context.md`.
 Verify `.tdd-state.local.json`: `current.phase` must be "review".
 
 ### 2. Build and tests
 
-Run build and tests. If failure, fix first.
+Run build and tests. Fix any failures before continuing.
 
 ### 3. Verify coverage
 
-{{COVERAGE_CMD}}
-
-{{COVERAGE_THRESHOLDS}}
-
-If coverage fails: add missing tests before continuing.
+Run coverage (command from `docs/dev/standards.md`).
+Ensure thresholds are met. If not, add missing tests first.
 
 ### 4. Commit and Push
 
-```bash
-git add .
-git commit -m "$(cat <<'EOF'
-{task_id}: {short task description}
-
-Generated with [Claude Code](https://claude.com/claude-code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"
-
-git push -u origin {task_id}
-```
+Commit all changes: `{task_id}: {short description}`
+Push to origin on current branch.
 
 ### 5. Create PR
 
-```bash
-gh pr create --base main --title "{task_id}: {task title}" --body "$(cat <<'EOF'
-## Summary
+Create PR with `gh pr create`:
+- Title: `{task_id}: {task title}`
+- Summary: objective from `.tdd-context.md`
+- Changes: list of created/modified files
+- Test plan: build, tests, coverage status
 
-{Description of what the task accomplishes, from .tdd-context.md > Objective}
+### 6. Code review (optional)
 
-## Changes
+If a code review plugin is available (e.g., `/code-review:code-review`), **ask user** if they want to run it:
+- **Yes**: For complex changes or those touching multiple modules
+- **No**: For small tasks or minor refactoring
 
-{List of created/modified files}
-
-## Test plan
-- [x] Build passes
-- [x] Tests pass
-- [x] Coverage thresholds met
-
-Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)"
-```
-
-### 6. Code Review
-
-**Ask user** if they want to run full code review:
-
-> The `/code-review:code-review` plugin performs thorough PR analysis, but it's quite heavy.
-> Do you want to use it?
-> - **Yes**: For complex, critical changes or those touching multiple modules
-> - **No**: For small tasks, simple fixes or minor refactoring
-
-If user accepts, run:
-
-```
-/code-review:code-review
-```
-
-Fix identified issues. If corrections are made:
-
-```bash
-git add .
-git commit --amend --no-edit
-git push --force-with-lease
-```
+Fix any identified issues, amend commit, and force-push.
 
 ### 7. Update .tdd-context.md
 
-Add section after `## Baseline`:
-
-```markdown
-### Final coverage
-- Line: [X.X]% (baseline: [Y.Y]%, delta: [+/-Z.Z]%)
-- Branch: [X.X]%
-- Status: Thresholds met
-
-### Review
-- PR: #{N}
-- Issues: [N] fixed
-- Standards: Compliant
-```
+Add after `## Baseline`:
+- Final coverage (line %, delta from baseline)
+- PR number
+- Review issues fixed (if code review ran)
 
 ### 8. Finalize
 
@@ -109,7 +56,7 @@ Set `current.phase` = "done" in `.tdd-state.local.json`.
 **Build:** OK
 **Tests:** [N]/[N] passed
 **Coverage:** [X.X]% (baseline: [Y.Y]%)
-**PR:** #{N} created
+**PR:** #{N}
 
 Run `/tdd:flow:6-done` to finalize.
 ```

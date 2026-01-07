@@ -7,10 +7,10 @@ Define technical architecture based on project context.
 ### 1. Load context (if available)
 
 Check and read if present:
-- `CLAUDE.md` - Overview, stack, structure
+- `{{AGENT_FILE}}` - Overview, stack, structure
 - `docs/epics/*.md` - Understand planned features
 
-**If `CLAUDE.md` doesn't exist**, ask basic questions:
+**If `{{AGENT_FILE}}` doesn't exist**, ask basic questions:
 ```
 Before defining architecture, I need some info:
 
@@ -183,9 +183,9 @@ tests/
 | {aspect} | {choice} | {justification} |
 ```
 
-### 4. Update CLAUDE.md
+### 4. Update {{AGENT_FILE}}
 
-Enrich Architecture section of `CLAUDE.md` with:
+Enrich Architecture section of `{{AGENT_FILE}}` with:
 - Detailed project structure
 - Main components
 - Used patterns
@@ -205,7 +205,7 @@ Enrich Architecture section of `CLAUDE.md` with:
 
 **Files created/updated:**
 - `docs/dev/architecture.md`
-- `CLAUDE.md` (Architecture section enriched)
+- `{{AGENT_FILE}}` (Architecture section enriched)
 
 **Next step:** `/tdd:init:3-standards`
 ```

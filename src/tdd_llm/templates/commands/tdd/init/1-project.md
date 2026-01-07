@@ -145,11 +145,11 @@ mkdir -p docs/user/reference
 - [ ] {Functional criterion}
 ```
 
-**Base `CLAUDE.md`:**
+**Base `{{AGENT_FILE}}`:**
 ```markdown
-# CLAUDE.md
+# {{AGENT_FILE}}
 
-This file provides guidance to Claude Code when working with this repository.
+This file provides guidance to the AI agent when working with this repository.
 
 ## Project Overview
 
@@ -181,6 +181,14 @@ This file provides guidance to Claude Code when working with this repository.
 {E0} -> {E1} -> {E2} -> ...
 
 See `docs/epics/` for details and `docs/state.json` for progress.
+
+## Documentation Structure
+
+| Type | Path | Purpose |
+|------|------|---------|
+| Dev docs | `docs/dev/` | Architecture, API reference, decisions (ADR) |
+| User docs | `docs/user/` | Guides and reference for end users |
+| Changelog | `CHANGELOG.md` | Version history |
 ```
 
 **`CHANGELOG.md`:**
@@ -210,7 +218,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - `docs/epics/e0-foundation.md`
 - `docs/epics/e1-{name}.md`
 - ...
-- `CLAUDE.md`
+- `{{AGENT_FILE}}`
 - `CHANGELOG.md`
 
 **Next steps:**
