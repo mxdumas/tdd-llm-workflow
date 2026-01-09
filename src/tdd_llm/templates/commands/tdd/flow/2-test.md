@@ -25,6 +25,15 @@ Run coverage command from project standards. Add to `.tdd-context.md` after `## 
 
 ### 3. Determine test scope
 
+**First, identify ALL classes impacted by the task:**
+- Services / Business logic
+- ViewModels / Presenters
+- UI components (if testable)
+- Data access / Repositories
+- Any helper or utility classes
+
+Each impacted class needs its own test coverage.
+
 **Test Pyramid - Apply layers based on task:**
 
 | Layer | Scope | Skip when |
@@ -97,13 +106,16 @@ Run coverage command from project standards. Add to `.tdd-context.md` after `## 
 {{RED_STRATEGY}}
 
 **Critical distinction:**
-- **Syntax/Import error** (prevents test collection) → Fix or create minimal stubs
+- **Syntax/Import error** (prevents test collection) → Create minimal stubs (empty classes/functions that throw)
 - **Test FAILED** (assertion failed, NotImplementedError) → Correct RED state
+
+{{ERROR_SUPPRESSION_WARNING}}
 
 ### 9. Completeness checklist
 
 Before marking RED complete:
 
+- [ ] **All impacted classes have tests** (Services, ViewModels, UI components, etc.)
 - [ ] Every public method has ≥1 Happy Path test
 - [ ] Every input parameter has ≥1 Edge Case test
 - [ ] Every exception type has ≥1 Error Handling test
