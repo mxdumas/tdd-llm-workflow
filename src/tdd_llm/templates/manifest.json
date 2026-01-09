@@ -1,7 +1,7 @@
 {
   "templates": {
     "commands/tdd/flow/1-analyze.md": "badde213e06477db6ac9cea9b0ce6ccc181821b5c5ea3fb90b09971870c8bbae",
-    "commands/tdd/flow/2-test.md": "d4940d0c50af44eae5ceeff9622c2640779257f185a78cc4e0581043175e7dc7",
+    "commands/tdd/flow/2-test.md": "df0724c024b9c0765a41c8940a95001c9587f74d99da62dd8b5800ddadeaf08a",
     "commands/tdd/flow/3-dev.md": "24e0658ff3046a626c7ae88532007fae61f725e63b2de0638d8a8e12807e0b5c",
     "commands/tdd/flow/4-docs.md": "e9ef1612d9c6362025d5d9b62b068460209a7e36abac9eed79c48810e1ce4306",
     "commands/tdd/flow/5-review.md": "985b605da590531a70d3cbf0115b3c4ab4a18e622cbd496af0a521aa50eea11e",
@@ -32,7 +32,7 @@
     "placeholders/langs/csharp/STANDARDS_QUESTIONS.md": "10ca37ac647222ab7496f1781fcbc81fe2f10e9ad1f94a578113bd687e2a5852",
     "placeholders/langs/python/ARCH_TEST_EXAMPLE.md": "07f0eb0dfa7b932a90a16a0129fdcddfe893842ad217426eaa306f620e5ed479",
     "placeholders/langs/python/BUILD_COMMANDS.md": "38d5f2680a96bf8ecb548f9d9a7cab9f695a77a8c79aa2b70434a63082849302",
-    "placeholders/langs/python/ERROR_SUPPRESSION_WARNING.md": "94686feaa4bebfcdedb4803b1f790e6343ce64d2c5c3e0d45bf407777edc349c",
+    "placeholders/langs/python/ERROR_SUPPRESSION_WARNING.md": "1881a67bf4c2eebdec08aa0168a661c2250ac11af7f7717a8cc014117ff09b5c",
     "placeholders/langs/python/INTEGRATION_TEST_EXAMPLE.md": "b4b2593dd650952c4ea8bd810081e38932df4c943b79e080e2ef61174b0c1f6a",
     "placeholders/langs/python/PERF_TEST_EXAMPLE.md": "c73b91089f85629ba641cff4b7664451d57c5826818da44178d62663413268b6",
     "placeholders/langs/python/RED_STRATEGY.md": "9500898e519630027a146255008264868cd973fb0b4370e0dfa6b6fb466914ef",

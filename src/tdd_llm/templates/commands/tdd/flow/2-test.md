@@ -115,7 +115,7 @@ Each impacted class needs its own test coverage.
 
 Before marking RED complete:
 
-- [ ] **All impacted classes have tests** (Services, ViewModels, UI components, etc.)
+- [ ] **All impacted classes have tests**
 - [ ] Every public method has ≥1 Happy Path test
 - [ ] Every input parameter has ≥1 Edge Case test
 - [ ] Every exception type has ≥1 Error Handling test

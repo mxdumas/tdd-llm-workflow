@@ -1,4 +1,4 @@
-**NEVER suppress errors to make tests pass:**
+**NEVER suppress errors to make tests compile:**
 - No `# type: ignore`
 - No `# noqa`
 - No `# pylint: disable`
