@@ -1,7 +1,7 @@
 {
   "templates": {
     "commands/tdd/flow/1-analyze.md": "36d96105db6b62dbe8aacf8db4334cc7e53d32002c1a729f4fd91fa381f2d27d",
-    "commands/tdd/flow/2-test.md": "21cf13a864c2a4d036065029a56525e72eca1393f21021154903da8eee86b8dd",
+    "commands/tdd/flow/2-test.md": "a9e8a7babccb3cbff5e84c039e3952fff4aab1a14f38221fda1e07b06978407e",
     "commands/tdd/flow/3-dev.md": "1c68d787b47209f45fd647054b4cd4bcebbe6039a8f4dce61dfd80c6e3f31c2c",
     "commands/tdd/flow/4-docs.md": "bb4f37bc2983f17a98079be8b8880f3e8e23500aeb17c6971e288d6033de9c08",
     "commands/tdd/flow/5-review.md": "7364b27e8e9cd4d65454fb97c2e8650c97c1be90f1518d4af75a75121d3c4184",
@@ -25,22 +25,25 @@
     "placeholders/backends/jira/TASK_SOURCE.md": "53970c3da54432011d12b31c26446d511c7ae66fdab56fa0091873f90c3fd693",
     "placeholders/langs/csharp/ARCH_TEST_EXAMPLE.md": "52d7cb143c3f69af7523feaafc08a079d1bb3eb1e67d75bdddf3d5b3ce9e8d5f",
     "placeholders/langs/csharp/BUILD_COMMANDS.md": "ce3f53ee5b26cf5b9833ce224f37c6afc5e1d561687d10fa96901eaa29b9c07c",
+    "placeholders/langs/csharp/ERROR_SUPPRESSION_WARNING.md": "8326b8898bf399d1f3fee23735dd7de44701b5c16878796c13f8adc430801b2d",
     "placeholders/langs/csharp/INTEGRATION_TEST_EXAMPLE.md": "96233264054fd2aafcc780a15e575d2bf21993be7574cf4d1eea59ed971372b8",
     "placeholders/langs/csharp/PERF_TEST_EXAMPLE.md": "4b12f36cf51918f8de9a50095e6bb4591a2cf902a0a635d36766446bdf5ed44b",
     "placeholders/langs/csharp/RED_STRATEGY.md": "37dd6e2c1b8eb19304309dd189482563b94f23942f335a3debfa6547361a6d56",
     "placeholders/langs/csharp/STANDARDS_QUESTIONS.md": "10ca37ac647222ab7496f1781fcbc81fe2f10e9ad1f94a578113bd687e2a5852",
     "placeholders/langs/python/ARCH_TEST_EXAMPLE.md": "fa6154d41f48550769e8c488a76d6f77953a30f0bb40640b070527e0625d6289",
     "placeholders/langs/python/BUILD_COMMANDS.md": "38d5f2680a96bf8ecb548f9d9a7cab9f695a77a8c79aa2b70434a63082849302",
+    "placeholders/langs/python/ERROR_SUPPRESSION_WARNING.md": "8c40accc69a0cd1a3bb0f429bd78ac33cbb610574f6258983633edf3062fa669",
     "placeholders/langs/python/INTEGRATION_TEST_EXAMPLE.md": "27c176624b33496a3c5e53f54bf6b4b6eff42af84211a970c204d5b2cbeb6e48",
     "placeholders/langs/python/PERF_TEST_EXAMPLE.md": "1f44e87a0a4d7da11c54c1f7847c619df95d96047949aa6982ab993b72fec3e8",
     "placeholders/langs/python/RED_STRATEGY.md": "690e54c0881dc5b78a4dac3b990f1dd066ff6b00a5b40296045e38f691289abb",
     "placeholders/langs/python/STANDARDS_QUESTIONS.md": "898b681227fce1427a493b85a960c756057e315d22161dab7f519d2b815719bd",
     "placeholders/langs/typescript/ARCH_TEST_EXAMPLE.md": "507c6e008e4fc18277188b14b23728f728c8721a481a70965b6caef837126269",
     "placeholders/langs/typescript/BUILD_COMMANDS.md": "fe1e4f57f4bb6bdb9d5ad5d5936f7da71c849c2a2f3d7932dc846371c600b803",
+    "placeholders/langs/typescript/ERROR_SUPPRESSION_WARNING.md": "b3d565dd8549b942aa51f69f12cdacc8e47feee11cba2347cd01f086f8aa2068",
     "placeholders/langs/typescript/INTEGRATION_TEST_EXAMPLE.md": "27c176624b33496a3c5e53f54bf6b4b6eff42af84211a970c204d5b2cbeb6e48",
     "placeholders/langs/typescript/PERF_TEST_EXAMPLE.md": "6a10a3d1a63c5f4dc10362cbcd42fec004fa93fb063654ebd9ea07dcabe165e4",
     "placeholders/langs/typescript/RED_STRATEGY.md": "b2cfcf8c893f8362069ef07a2598b7e17c26e4236c595fb9ccae595f8e3656a3",
     "placeholders/langs/typescript/STANDARDS_QUESTIONS.md": "5060de289841885e8c78b83384df94d9bfc55d4f0ecccfc52bfa63ed65e39d0c"
   },
-  "version": "1.0.1"
+  "version": "1.0.2"
 }
