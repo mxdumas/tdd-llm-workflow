@@ -707,10 +707,13 @@ def _migrate_cmd(
 
     config = Config.load()
 
-    # Check Jira is configured
-    if not config.jira.is_configured():
+    # Check Jira is configured (config or stored OAuth credentials)
+    from .backends.jira.auth import JiraAuthManager
+
+    auth_manager = JiraAuthManager(config.jira)
+    if not config.jira.is_configured() and not auth_manager.is_oauth_available():
         rprint("[red]Error:[/red] Jira is not configured.")
-        rprint("Run: tdd-llm config --set-backend jira")
+        rprint("Run: tdd-llm jira login")
         raise typer.Exit(1)
 
     if dry_run:
