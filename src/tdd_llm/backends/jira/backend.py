@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -11,6 +12,8 @@ from .client import JiraClient, JiraIssue, JiraNotFoundError
 
 if TYPE_CHECKING:
     from ...config import JiraConfig
+
+logger = logging.getLogger(__name__)
 
 # Local state file for session continuity
 LOCAL_STATE_FILE = ".tdd-state.local.json"
@@ -138,7 +141,10 @@ class JiraBackend:
         # Jira Cloud uses parent = EPIC_KEY
         # Also filter by task issue types
         task_types = ", ".join(f'"{t}"' for t in self.config.task_issue_types)
-        jql = f'project = "{project}" AND parent = "{epic_key}" AND issuetype in ({task_types}) ORDER BY rank'
+        jql = (
+            f'project = "{project}" AND parent = "{epic_key}" '
+            f'AND issuetype in ({task_types}) ORDER BY rank'
+        )
 
         issues = self.client.search(jql)
         return [self._issue_to_task(issue, epic_id=epic_key) for issue in issues]
@@ -163,13 +169,12 @@ class JiraBackend:
 
         jql = f'project = "{project}" AND issuetype = "{epic_type}"'
 
-        # Filter by status if specified
-        if status == "completed":
-            jql += " AND status = Done"
-        elif status == "in_progress":
-            jql += " AND status != Done AND status != 'To Do'"
-        elif status == "not_started":
-            jql += " AND status = 'To Do'"
+        # Filter by status if specified using config-based mapping
+        if status:
+            jira_statuses = self.config.get_jira_statuses_for_tdd(status)
+            if jira_statuses:
+                quoted_statuses = ", ".join(f'"{s}"' for s in jira_statuses)
+                jql += f" AND status IN ({quoted_statuses})"
 
         jql += " ORDER BY rank"
 
@@ -213,19 +218,18 @@ class JiraBackend:
 
     def update_task_status(self, task_id: str, status: str) -> None:
         """Update a task's status in Jira."""
-        # Map TDD status to Jira status name
-        status_name_map = {
-            "not_started": "To Do",
-            "in_progress": "In Progress",
-            "completed": "Done",
-        }
-        jira_status = status_name_map.get(status, status)
+        # Map TDD status to Jira status name using config
+        jira_status = self.config.get_jira_status(status)
 
         # Try to transition the issue
         success = self.client.transition_to_status(task_id, jira_status)
         if not success:
-            # Log warning but don't fail - status names vary
-            pass
+            logger.warning(
+                "Failed to transition issue %s to status '%s'. "
+                "Check your Jira workflow configuration and permissions.",
+                task_id,
+                jira_status,
+            )
 
         # Update local state if completing
         if status == "completed":
@@ -275,9 +279,6 @@ class JiraBackend:
 
     def set_phase(self, task_id: str, phase: str) -> None:
         """Set the TDD phase for a task using Jira labels."""
-        # Get current task to find existing phase labels
-        task = self.get_task(task_id)
-
         # Remove existing phase labels and add new one
         remove_labels = [
             label for label in self.client.get_issue(task_id).labels
@@ -305,14 +306,18 @@ class JiraBackend:
         local_state["current"]["phase"] = None
         self._save_local_state(local_state)
 
-    def add_comment(self, task_id: str, comment: str) -> None:
+    def add_comment(self, task_id: str, comment: str) -> bool:
         """Add a comment to a task.
 
         Args:
             task_id: Task issue key.
             comment: Comment text.
+
+        Returns:
+            True (comments are supported).
         """
         self.client.add_comment(task_id, comment)
+        return True
 
 
 # Ensure JiraBackend implements Backend protocol

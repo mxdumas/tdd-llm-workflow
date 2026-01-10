@@ -312,7 +312,7 @@ class FilesBackend:
 
     def get_state(self) -> WorkflowState:
         """Get the current workflow state."""
-        state = self._load_state()
+        self._load_state()  # Validate state file exists
         local_state = self._load_local_state()
 
         current_epic_id = local_state.get("current", {}).get("epic")
@@ -366,6 +366,16 @@ class FilesBackend:
             self._save_state(state)
 
         self._save_local_state(local_state)
+
+    def add_comment(self, task_id: str, comment: str) -> bool:
+        """Add a comment to a task.
+
+        Not supported for files backend.
+
+        Returns:
+            False (comments not supported).
+        """
+        return False
 
 
 # Ensure FilesBackend implements Backend protocol

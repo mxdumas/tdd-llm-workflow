@@ -174,3 +174,15 @@ class Backend(Protocol):
             task_id: Task to set as current, or None to clear.
         """
         ...
+
+    def add_comment(self, task_id: str, comment: str) -> bool:
+        """Add a comment to a task.
+
+        Args:
+            task_id: Task to comment on.
+            comment: Comment text.
+
+        Returns:
+            True if comment was added, False if not supported.
+        """
+        ...

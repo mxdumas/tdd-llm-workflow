@@ -14,7 +14,6 @@ from .config import (
     Config,
     CoverageThresholds,
     JiraConfig,
-    JiraFieldMappings,
     get_available_backends,
     get_available_languages,
     get_global_config_path,
@@ -687,7 +686,9 @@ def _migrate_cmd(
     ] = False,
     output: Annotated[
         str | None,
-        typer.Option("--output", "-o", help="Path for mapping file (default: docs/jira-mapping.json)"),
+        typer.Option(
+            "--output", "-o", help="Path for mapping file (default: docs/jira-mapping.json)"
+        ),
     ] = None,
 ):
     """Migrate epics and tasks from files backend to Jira.
@@ -881,7 +882,9 @@ def backend_update_status(
     task_id: Annotated[str, typer.Argument(help="Task ID to update")],
     status: Annotated[
         str,
-        typer.Argument(help="New status (not_started, in_progress, completed, or Jira status name)"),
+        typer.Argument(
+            help="New status (not_started, in_progress, completed, or Jira status name)"
+        ),
     ],
 ):
     """Update a task's status in the configured backend.
@@ -986,8 +989,7 @@ def backend_add_comment(
     """
     try:
         backend = _get_backend()
-        if hasattr(backend, "add_comment"):
-            backend.add_comment(task_id, comment)
+        if backend.add_comment(task_id, comment):
             rprint(f"[green]Added comment to {task_id}[/green]")
         else:
             rprint("[yellow]Comments not supported for this backend.[/yellow]")
@@ -1052,7 +1054,10 @@ def jira_login(
         rprint("  [cyan]https://developer.atlassian.com/console/myapps/[/cyan]\n")
         rprint("Configure your app with:")
         rprint(f"  Callback URL: [cyan]http://localhost:{port}/callback[/cyan]")
-        rprint("  Permissions: [dim]Jira API > read:jira-work, write:jira-work, read:jira-user[/dim]\n")
+        rprint(
+            "  Permissions: [dim]Jira API > read:jira-work, write:jira-work, "
+            "read:jira-user[/dim]\n"
+        )
 
         client_id = typer.prompt("OAuth Client ID")
         client_secret = typer.prompt("OAuth Client Secret", hide_input=True)
@@ -1130,7 +1135,7 @@ def jira_auth_status():
     """Show Jira authentication status."""
     from datetime import datetime
 
-    from .backends.jira.auth import JiraAuthManager, TokenStorage
+    from .backends.jira.auth import TokenStorage
 
     config = Config.load()
     storage = TokenStorage()
@@ -1146,7 +1151,12 @@ def jira_auth_status():
             "Stored Credentials",
             "[green]yes[/green]",
         )
-        table.add_row("Client ID", f"{credentials.client_id[:12]}..." if len(credentials.client_id) > 12 else credentials.client_id)
+        client_id_display = (
+            f"{credentials.client_id[:12]}..."
+            if len(credentials.client_id) > 12
+            else credentials.client_id
+        )
+        table.add_row("Client ID", client_id_display)
     else:
         # Check env var / config
         oauth_configured = config.jira.is_oauth_configured()

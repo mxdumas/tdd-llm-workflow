@@ -173,7 +173,7 @@ class OAuthCredentials:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "OAuthCredentials":
+    def from_dict(cls, data: dict) -> OAuthCredentials:
         """Create from dictionary."""
         return cls(
             client_id=data["client_id"],
@@ -210,7 +210,7 @@ class OAuthTokens:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "OAuthTokens":
+    def from_dict(cls, data: dict) -> OAuthTokens:
         """Create from dictionary."""
         return cls(
             access_token=data["access_token"],
@@ -601,7 +601,7 @@ class JiraAuthManager:
 
     def __init__(
         self,
-        config: "JiraConfig",
+        config: JiraConfig,
         storage: TokenStorage | None = None,
     ) -> None:
         """Initialize auth manager.

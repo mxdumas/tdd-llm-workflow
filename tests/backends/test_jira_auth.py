@@ -279,12 +279,14 @@ class TestJiraAuthManager:
         auth = JiraAuthManager(oauth_config)
         assert auth.is_oauth_available() is True
 
-    def test_is_oauth_not_available_without_credentials(self):
+    def test_is_oauth_not_available_without_credentials(self, tmp_path):
         """Test OAuth not available without credentials."""
-        from tdd_llm.backends.jira.auth import JiraAuthManager
+        from tdd_llm.backends.jira.auth import JiraAuthManager, TokenStorage
 
         config = JiraConfig()
-        auth = JiraAuthManager(config)
+        # Use a temp storage to ensure no existing credentials are found
+        storage = TokenStorage(config_dir=tmp_path)
+        auth = JiraAuthManager(config, storage=storage)
         assert auth.is_oauth_available() is False
 
     def test_get_auth_header_basic_auth(self, api_token_config, tmp_path):

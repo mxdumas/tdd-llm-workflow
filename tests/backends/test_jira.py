@@ -188,11 +188,15 @@ class TestJiraClient:
         config = JiraConfig()  # Empty config
         client = JiraClient(config)
 
-        # Client is lazy-loaded, so error occurs on first use
-        with pytest.raises(ValueError) as exc_info:
-            client._ensure_client()
+        # Mock token storage to ensure no tokens are found
+        with mock.patch(
+            "tdd_llm.backends.jira.auth.TokenStorage.load_tokens", return_value=None
+        ):
+            # Client is lazy-loaded, so error occurs on first use
+            with pytest.raises(ValueError) as exc_info:
+                client._ensure_client()
 
-        assert "not configured" in str(exc_info.value).lower()
+            assert "not configured" in str(exc_info.value).lower()
 
     def test_client_init(self, jira_config, mock_api_token):
         """Test client initialization (lazy-loaded)."""

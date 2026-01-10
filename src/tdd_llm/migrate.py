@@ -89,8 +89,7 @@ class FilesToJiraMigrator:
             }
         }
 
-        response = self.client._client.post("/issue", json=payload)
-        data = self.client._handle_response(response)
+        data = self.client.create_issue(payload)
         return data.get("key")  # type: ignore
 
     def _create_task_in_jira(
@@ -137,7 +136,9 @@ class FilesToJiraMigrator:
                     "content": [
                         {
                             "type": "paragraph",
-                            "content": [{"type": "text", "text": full_description or "No description"}],
+                            "content": [
+                                {"type": "text", "text": full_description or "No description"}
+                            ],
                         }
                     ],
                 },
@@ -146,8 +147,7 @@ class FilesToJiraMigrator:
             }
         }
 
-        response = self.client._client.post("/issue", json=payload)
-        data = self.client._handle_response(response)
+        data = self.client.create_issue(payload)
         task_key = data.get("key")  # type: ignore
 
         # Transition to Done if completed

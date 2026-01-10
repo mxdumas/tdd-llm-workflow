@@ -62,7 +62,7 @@ class JiraIssue:
     """All custom fields (customfield_*)."""
 
     @classmethod
-    def from_api_response(cls, data: dict) -> "JiraIssue":
+    def from_api_response(cls, data: dict) -> JiraIssue:
         """Create JiraIssue from API response.
 
         Args:
@@ -157,8 +157,8 @@ class JiraClient:
 
     def __init__(
         self,
-        config: "JiraConfig",
-        auth_manager: "JiraAuthManager | None" = None,
+        config: JiraConfig,
+        auth_manager: JiraAuthManager | None = None,
     ):
         """Initialize Jira client.
 
@@ -171,13 +171,13 @@ class JiraClient:
             ValueError: If configuration is incomplete.
         """
         self.config = config
-        self._auth_manager: "JiraAuthManager | None" = auth_manager
+        self._auth_manager: JiraAuthManager | None = auth_manager
 
         # Lazy initialization - determine base URL and auth method
         self._base_url: str | None = None
         self._client: httpx.Client | None = None
 
-    def _get_auth_manager(self) -> "JiraAuthManager":
+    def _get_auth_manager(self) -> JiraAuthManager:
         """Get or create auth manager."""
         if self._auth_manager is None:
             from .auth import JiraAuthManager
@@ -269,7 +269,7 @@ class JiraClient:
             self._client.close()
             self._client = None
 
-    def __enter__(self) -> "JiraClient":
+    def __enter__(self) -> JiraClient:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -431,7 +431,9 @@ class JiraClient:
 
         return False
 
-    def update_labels(self, key: str, add: list[str] | None = None, remove: list[str] | None = None) -> None:
+    def update_labels(
+        self, key: str, add: list[str] | None = None, remove: list[str] | None = None
+    ) -> None:
         """Update issue labels.
 
         Args:
@@ -442,19 +444,19 @@ class JiraClient:
         Raises:
             JiraAPIError: On API error.
         """
-        update: dict[str, list] = {}
+        operations = []
         if add:
-            update["add"] = [{"value": label} for label in add]
+            operations.extend([{"add": label} for label in add])
         if remove:
-            update["remove"] = [{"value": label} for label in remove]
+            operations.extend([{"remove": label} for label in remove])
 
-        if not update:
+        if not operations:
             return
 
         response = self._request(
             "PUT",
             f"/issue/{key}",
-            json={"update": {"labels": [update]}},
+            json={"update": {"labels": operations}},
         )
         self._handle_response(response)
 
@@ -486,3 +488,19 @@ class JiraClient:
             json={"body": adf_body},
         )
         self._handle_response(response)
+
+    def create_issue(self, payload: dict) -> dict:
+        """Create a new issue.
+
+        Args:
+            payload: Issue creation payload in Jira API format.
+
+        Returns:
+            Created issue data (includes 'key' and 'id').
+
+        Raises:
+            JiraAPIError: On API error.
+        """
+        response = self._request("POST", "/issue", json=payload)
+        data = self._handle_response(response)
+        return data  # type: ignore

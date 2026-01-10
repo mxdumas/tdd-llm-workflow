@@ -147,6 +147,58 @@ class JiraConfig:
             return "in_progress"
         return "not_started"
 
+    def get_jira_status(self, tdd_status: str) -> str:
+        """Map TDD status to Jira status name.
+
+        Args:
+            tdd_status: TDD status ('not_started', 'in_progress', 'completed').
+
+        Returns:
+            Jira status name (e.g., 'To Do', 'In Progress', 'Done').
+        """
+        # If we have a status_map, invert it to find the first Jira status
+        # that maps to the given TDD status
+        if self.status_map:
+            for jira_status, mapped_tdd_status in self.status_map.items():
+                if mapped_tdd_status == tdd_status:
+                    return jira_status
+
+        # Default mapping
+        default_map = {
+            "not_started": "To Do",
+            "in_progress": "In Progress",
+            "completed": "Done",
+        }
+        return default_map.get(tdd_status, tdd_status)
+
+    def get_jira_statuses_for_tdd(self, tdd_status: str) -> list[str]:
+        """Get all Jira statuses that map to a TDD status.
+
+        Args:
+            tdd_status: TDD status ('not_started', 'in_progress', 'completed').
+
+        Returns:
+            List of Jira status names.
+        """
+        statuses = []
+
+        if self.status_map:
+            for jira_status, mapped_tdd_status in self.status_map.items():
+                if mapped_tdd_status == tdd_status:
+                    statuses.append(jira_status)
+
+        # Add defaults if not already in the map
+        default_map = {
+            "not_started": ["To Do", "Open", "Backlog"],
+            "in_progress": ["In Progress", "In Review"],
+            "completed": ["Done", "Closed", "Resolved"],
+        }
+        for default_status in default_map.get(tdd_status, []):
+            if default_status not in statuses:
+                statuses.append(default_status)
+
+        return statuses
+
     def to_dict(self) -> dict:
         """Convert to dictionary (excluding sensitive data)."""
         result: dict = {}
@@ -215,7 +267,7 @@ class Config:
         return result
 
     @classmethod
-    def _from_data(cls, data: dict, source: ConfigSource) -> "Config":
+    def _from_data(cls, data: dict, source: ConfigSource) -> Config:
         """Create Config from data dict."""
         coverage_data = data.get("coverage", {})
         coverage = CoverageThresholds(
@@ -257,7 +309,7 @@ class Config:
         path: Path | None = None,
         project_path: Path | None = None,
         include_project: bool = True,
-    ) -> "Config":
+    ) -> Config:
         """Load configuration from YAML files.
 
         Loads global config first, then merges project config on top.
