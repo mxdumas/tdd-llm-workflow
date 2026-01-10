@@ -117,13 +117,13 @@ class FilesBackend:
 
         content = file_path.read_text(encoding="utf-8")
 
-        # Parse title: # E{N}: {Name}
-        title_match = re.search(r"^#\s+E\d+:\s*(.+)$", content, re.MULTILINE)
+        # Parse title: # E{N}: {Name} or # E{N} - {Name}
+        title_match = re.search(r"^#\s+E\d+[:\-]\s*(.+)$", content, re.MULTILINE)
         name = title_match.group(1).strip() if title_match else epic_id
 
         # Parse description (text between title and first ## section)
         desc_match = re.search(
-            r"^#\s+E\d+:.+?\n\n(.+?)(?=\n##|\Z)", content, re.DOTALL | re.MULTILINE
+            r"^#\s+E\d+[:\-].+?\n\n(.+?)(?=\n##|\Z)", content, re.DOTALL | re.MULTILINE
         )
         description = desc_match.group(1).strip() if desc_match else ""
 
@@ -156,7 +156,65 @@ class FilesBackend:
                 }
             )
 
+        # Also look for task files in E{N}/ subdirectory
+        tasks.extend(self._parse_task_files(epic_id))
+
         return name, description, tasks
+
+    def _parse_task_files(self, epic_id: str) -> list[dict]:
+        """Parse task files from E{N}/ subdirectory.
+
+        Args:
+            epic_id: Epic ID (e.g., 'E1').
+
+        Returns:
+            List of task dicts.
+        """
+        tasks = []
+        task_dir = self.epics_dir / epic_id
+
+        if not task_dir.is_dir():
+            return tasks
+
+        # Find task files: T1.md, T2.md, etc. (not T1-context.md)
+        for task_file in sorted(task_dir.glob("T*.md")):
+            # Skip context files like T1-context.md
+            if "-" in task_file.stem:
+                continue
+
+            task_id = task_file.stem  # e.g., "T1"
+            content = task_file.read_text(encoding="utf-8")
+
+            # Parse title: # [E{N}] T{M} - {Title} or # T{M}: {Title}
+            title_match = re.search(
+                r"^#\s+(?:\[E\d+\]\s+)?T\d+\s*[:\-]\s*(.+)$", content, re.MULTILINE
+            )
+            task_title = title_match.group(1).strip() if title_match else task_id
+
+            # Description is everything after the title
+            desc_match = re.search(
+                r"^#\s+.+?\n\n(.+)", content, re.DOTALL | re.MULTILINE
+            )
+            task_desc = desc_match.group(1).strip() if desc_match else ""
+
+            # Try to extract acceptance criteria
+            ac_match = re.search(
+                r"\*\*Acceptance criteria:?\*\*\s*\n(.+?)(?=\n\*\*|\Z)",
+                task_desc,
+                re.DOTALL | re.IGNORECASE,
+            )
+            acceptance_criteria = ac_match.group(1).strip() if ac_match else None
+
+            tasks.append(
+                {
+                    "id": task_id,
+                    "title": task_title,
+                    "description": task_desc,
+                    "acceptance_criteria": acceptance_criteria,
+                }
+            )
+
+        return tasks
 
     def _get_epic_status(self, epic_id: str, state: dict) -> str:
         """Get epic status from state."""
