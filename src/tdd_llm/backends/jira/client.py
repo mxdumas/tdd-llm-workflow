@@ -502,3 +502,17 @@ class JiraClient:
         response = self._request("POST", "/issue", json=payload)
         data = self._handle_response(response)
         return data  # type: ignore
+
+    def update_issue(self, key: str, payload: dict) -> None:
+        """Update an existing issue.
+
+        Args:
+            key: Issue key (e.g., 'PROJ-123').
+            payload: Issue update payload in Jira API format.
+
+        Raises:
+            JiraNotFoundError: If issue not found.
+            JiraAPIError: On API error.
+        """
+        response = self._request("PUT", f"/issue/{key}", json=payload)
+        self._handle_response(response)

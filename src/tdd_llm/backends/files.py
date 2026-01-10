@@ -192,9 +192,7 @@ class FilesBackend:
             task_title = title_match.group(1).strip() if title_match else task_id
 
             # Description is everything after the title
-            desc_match = re.search(
-                r"^#\s+.+?\n\n(.+)", content, re.DOTALL | re.MULTILINE
-            )
+            desc_match = re.search(r"^#\s+.+?\n\n(.+)", content, re.DOTALL | re.MULTILINE)
             task_desc = desc_match.group(1).strip() if desc_match else ""
 
             # Try to extract acceptance criteria
