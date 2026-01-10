@@ -26,9 +26,10 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Update version in pyproject.toml
+      - name: Update version in source files
         run: |
           sed -i 's/version = "[^"]*"/version = "${{ steps.version.outputs.version }}"/' pyproject.toml
+          sed -i 's/__version__ = "[^"]*"/__version__ = "${{ steps.version.outputs.version }}"/' src/tdd_llm/__init__.py
 
       - name: Build package
         run: python -m build
