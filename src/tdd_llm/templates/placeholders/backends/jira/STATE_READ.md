@@ -1,17 +1,35 @@
 **Loading state from Jira:**
 
-Use the MCP Jira server to fetch epic and story status:
+Get current workflow state using CLI:
 
-```
-Use the Jira MCP tool to:
-1. Get current epic status (JQL: project = {PROJECT} AND issuetype = Epic AND status != Done)
-2. Get stories in current epic (JQL: "Epic Link" = {EPIC_KEY})
-3. Determine next story to work on (first story with status = "To Do" or "In Progress")
+```bash
+tdd-llm backend status
 ```
 
-If no active epic found -> display:
-```
-No active epic found in Jira. Create an epic first or check project configuration.
+Returns JSON:
+```json
+{
+  "backend": "jira",
+  "current_epic": {
+    "id": "PROJ-100",
+    "name": "Epic name",
+    "status": "in_progress",
+    "tasks": [...]
+  },
+  "current_task": {
+    "id": "PROJ-1234",
+    "title": "...",
+    "phase": "test"
+  },
+  "epics": [...]
+}
 ```
 
-Store current task context in `.tdd-state.local.json` for session continuity.
+If no active epic: `current_epic` and `current_task` will be null.
+
+Local session state is cached in `.tdd-state.local.json` for phase tracking.
+
+To get the next task to work on:
+```bash
+tdd-llm backend next-task {epic_id}
+```

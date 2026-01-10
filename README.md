@@ -9,7 +9,8 @@ Deploy structured Test-Driven Development workflows to your AI coding assistants
 - Deploy `.claude/` and `.gemini/` configuration directories
 - Automatic conversion from Claude (.md) to Gemini (.toml) format
 - Language-specific placeholders (Python, C#, TypeScript)
-- Backend support for local files or Jira (via MCP)
+- Backend support for local files or Jira (via REST API)
+- Migrate existing projects from files to Jira
 - Global and project-level configuration (project overrides global)
 - Configurable coverage thresholds per project
 - Cross-platform (Linux, macOS, Windows)
@@ -136,14 +137,140 @@ Updated templates are cached in:
 ### Files (default)
 
 Uses local markdown files for epic/story management:
-- `docs/epics/` - Epic definitions
+- `docs/epics/*.md` - Epic definitions with tasks
 - `docs/state.json` - Progress tracking
+- `.tdd-state.local.json` - Session state (gitignored)
 
 ### Jira
 
-Uses MCP Jira server for epic/story management:
-- Fetches epics and stories from Jira
-- Updates status via Jira API
+Uses Jira REST API for epic/story management. Supports OAuth 2.0 (recommended) or API token authentication.
+
+#### OAuth 2.0 Authentication (Recommended)
+
+OAuth provides secure, token-based authentication with automatic refresh. Credentials are stored encrypted locally.
+
+```bash
+# Login with OAuth (interactive setup on first run)
+tdd-llm jira login
+
+# Check authentication status
+tdd-llm jira status
+
+# Logout (remove stored tokens and credentials)
+tdd-llm jira logout
+```
+
+**First-time setup:**
+
+1. Create an OAuth app at https://developer.atlassian.com/console/myapps/
+2. Configure your app:
+   - Callback URL: `http://localhost:8089/callback`
+   - Permissions: Jira API > `read:jira-work`, `write:jira-work`, `read:jira-user`
+3. Run `tdd-llm jira login` and enter your Client ID and Client Secret when prompted
+4. Complete authorization in your browser
+
+Credentials and tokens are encrypted and stored in:
+- Linux/macOS: `~/.config/tdd-llm/`
+- Windows: `%APPDATA%\tdd-llm\`
+
+#### API Token Authentication (Alternative)
+
+For simpler setups or environments where OAuth isn't available:
+
+```bash
+# Set API token
+export JIRA_API_TOKEN=your-api-token
+```
+
+Generate an API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+
+#### Configuration
+
+```yaml
+# In config.yaml
+default_backend: "jira"
+jira:
+  base_url: "https://company.atlassian.net"
+  email: "user@company.com"
+  project_key: "PROJ"
+
+  # Optional: custom field mappings
+  fields:
+    acceptance_criteria: "customfield_10001"
+
+  # Optional: status mapping
+  status_map:
+    "To Do": "not_started"
+    "In Progress": "in_progress"
+    "Done": "completed"
+```
+
+Environment variables (override config):
+- `JIRA_API_TOKEN` - API token for basic auth
+- `JIRA_BASE_URL` - Jira instance URL
+- `JIRA_EMAIL` - User email
+- `JIRA_PROJECT_KEY` - Default project key
+
+#### Backend Commands
+
+Commands for AI assistants to interact with Jira:
+
+```bash
+# Get current workflow state
+tdd-llm backend status
+
+# Get epic with all tasks
+tdd-llm backend get-epic PROJ-100
+
+# Get task details
+tdd-llm backend get-task PROJ-1234
+
+# Get next incomplete task
+tdd-llm backend next-task PROJ-100
+
+# Update task status
+tdd-llm backend update-status PROJ-1234 Done
+
+# Set TDD phase (adds label tdd:test, tdd:dev, etc.)
+tdd-llm backend set-phase PROJ-1234 test
+
+# Set current task
+tdd-llm backend set-current PROJ-100 PROJ-1234
+
+# Add comment to task
+tdd-llm backend add-comment PROJ-1234 "Task completed"
+```
+
+### Migration: Files to Jira
+
+Migrate existing epics and tasks from files backend to Jira:
+
+```bash
+# Preview what will be created (dry run)
+tdd-llm migrate --dry-run
+
+# Run migration
+tdd-llm migrate
+
+# Custom output path for mapping file
+tdd-llm migrate --output my-mapping.json
+```
+
+The migration:
+1. Reads epics from `docs/epics/*.md`
+2. Creates epics in Jira with format `E1: Epic Name`
+3. Creates tasks linked to epics with format `T1: Task Title`
+4. Marks completed tasks as "Done" in Jira
+5. Generates `docs/jira-mapping.json`:
+
+```json
+{
+  "E1": "PROJ-100",
+  "E1/T1": "PROJ-101",
+  "E1/T2": "PROJ-102",
+  "E2": "PROJ-200"
+}
+```
 
 ## TDD Workflow Commands
 

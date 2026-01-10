@@ -1,18 +1,31 @@
 **Task source: Jira**
 
-Use the MCP Jira server to fetch story details:
+Fetch task details using CLI:
 
+```bash
+tdd-llm backend get-task {task_id}
 ```
-Use the Jira MCP tool to:
-1. Fetch story: GET /rest/api/3/issue/{STORY_KEY}
-2. Extract: summary, description, acceptance criteria
+
+Returns JSON:
+```json
+{
+  "id": "PROJ-1234",
+  "epic_id": "PROJ-100",
+  "title": "Task title",
+  "description": "Full description...",
+  "status": "not_started",
+  "acceptance_criteria": "AC text or null",
+  "phase": "test"
+}
 ```
 
 Task identification:
 - epic_id: Jira epic key (e.g., `PROJ-100`)
 - task_id: Jira story key (e.g., `PROJ-1234`)
 
-Map Jira fields:
-- `summary` → Task title
-- `description` → Task description / requirements
-- `acceptanceCriteria` or `customfield_*` → Completion criteria
+Fields are mapped from Jira:
+- `summary` → title
+- `description` → description
+- `status` → mapped from Jira workflow status
+- `acceptanceCriteria` or custom field → acceptance_criteria
+- TDD labels (`tdd:test`, etc.) → phase
