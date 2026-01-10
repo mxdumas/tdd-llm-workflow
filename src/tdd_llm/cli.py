@@ -13,6 +13,7 @@ from . import __version__
 from .config import (
     Config,
     CoverageThresholds,
+    JiraConfig,
     get_available_backends,
     get_available_languages,
     get_global_config_path,
@@ -64,13 +65,44 @@ def run_setup_wizard() -> Config | None:
     if available_backends:
         rprint("\n[bold]Available backends:[/bold]")
         rprint("  - files: Local files (docs/epics/, docs/state.json)")
-        rprint("  - jira: Jira via MCP server")
+        rprint("  - jira: Jira via REST API (requires API token)")
 
     backend = typer.prompt(
         "\nDefault backend",
         default="files",
         type=click.Choice(["files", "jira"], case_sensitive=False),
     )
+
+    # Jira configuration (if jira backend selected)
+    jira_config = JiraConfig()
+    if backend == "jira":
+        rprint("\n[bold cyan]Jira Configuration[/bold cyan]")
+        rprint("[dim]Configure your Jira connection. API token should be set via[/dim]")
+        rprint("[dim]the JIRA_API_TOKEN environment variable.[/dim]\n")
+
+        jira_base_url = typer.prompt(
+            "Jira base URL",
+            default="https://company.atlassian.net",
+        )
+
+        jira_email = typer.prompt(
+            "Jira email",
+            default="",
+        )
+
+        jira_project_key = typer.prompt(
+            "Default project key",
+            default="PROJ",
+        )
+
+        jira_config = JiraConfig(
+            base_url=jira_base_url,
+            email=jira_email,
+            project_key=jira_project_key,
+        )
+
+        rprint("\n[yellow]Note:[/yellow] Set the JIRA_API_TOKEN environment variable")
+        rprint("Generate a token at: https://id.atlassian.com/manage-profile/security/api-tokens")
 
     # Target selection
     rprint("\n[bold]Deployment targets:[/bold]")
@@ -114,6 +146,7 @@ def run_setup_wizard() -> Config | None:
         default_backend=backend,  # type: ignore
         platforms=platforms,
         coverage=CoverageThresholds(line=coverage_line, branch=coverage_branch),
+        jira=jira_config,
     )
 
     saved_path = config.save(project=False)
@@ -132,6 +165,11 @@ def run_setup_wizard() -> Config | None:
     table.add_row("Platforms", ", ".join(config.platforms))
     table.add_row("Coverage (line)", f"{config.coverage.line}%")
     table.add_row("Coverage (branch)", f"{config.coverage.branch}%")
+
+    if config.default_backend == "jira" and config.jira.base_url:
+        table.add_row("Jira URL", config.jira.base_url)
+        table.add_row("Jira email", config.jira.email or "[dim]not set[/dim]")
+        table.add_row("Jira project", config.jira.project_key or "[dim]not set[/dim]")
 
     console.print(table)
     rprint()
@@ -329,7 +367,7 @@ def _list_cmd():
     if backends:
         descriptions = {
             "files": "Local files (docs/epics/, docs/state.json)",
-            "jira": "Jira via MCP server",
+            "jira": "Jira via REST API",
         }
         for backend in backends:
             backend_table.add_row(backend, descriptions.get(backend, ""))
@@ -463,6 +501,40 @@ def _config_cmd(
         config.default_backend = set_backend  # type: ignore
         modified = True
         rprint(f"Set default backend to: [cyan]{set_backend}[/cyan]")
+
+        # If switching to jira, prompt for Jira configuration
+        if set_backend == "jira" and not config.jira.base_url:
+            rprint("\n[bold cyan]Jira Configuration[/bold cyan]")
+            rprint("[dim]Configure your Jira connection. API token should be set via[/dim]")
+            rprint("[dim]the JIRA_API_TOKEN environment variable.[/dim]\n")
+
+            jira_base_url = typer.prompt(
+                "Jira base URL",
+                default=config.jira.base_url or "https://company.atlassian.net",
+            )
+
+            jira_email = typer.prompt(
+                "Jira email",
+                default=config.jira.email or "",
+            )
+
+            jira_project_key = typer.prompt(
+                "Default project key",
+                default=config.jira.project_key or "PROJ",
+            )
+
+            config.jira = JiraConfig(
+                base_url=jira_base_url,
+                email=jira_email,
+                project_key=jira_project_key,
+                fields=config.jira.fields,
+                status_map=config.jira.status_map,
+            )
+
+            rprint("\n[yellow]Note:[/yellow] Set the JIRA_API_TOKEN environment variable")
+            rprint(
+                "Generate a token at: https://id.atlassian.com/manage-profile/security/api-tokens"
+            )
 
     if set_target:
         if set_target not in ("project", "user"):
@@ -602,6 +674,541 @@ def _update_cmd(
 
 
 app.command(name="update")(_update_cmd)
+
+
+# ============================================================================
+# Migrate command
+# ============================================================================
+
+
+def _migrate_cmd(
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", "-n", help="Show what would be done without creating issues"),
+    ] = False,
+    output: Annotated[
+        str | None,
+        typer.Option(
+            "--output", "-o", help="Path for mapping file (default: docs/jira-mapping.json)"
+        ),
+    ] = None,
+):
+    """Migrate epics and tasks from files backend to Jira.
+
+    Reads epics from docs/epics/*.md and creates corresponding
+    epics and stories in Jira. Generates a mapping file with
+    local IDs to Jira keys.
+
+    Requires Jira to be configured (tdd-llm config --set-backend jira).
+    """
+    from pathlib import Path
+
+    from .migrate import FilesToJiraMigrator
+
+    config = Config.load()
+
+    # Check Jira is configured
+    if not config.jira.is_configured():
+        rprint("[red]Error:[/red] Jira is not configured.")
+        rprint("Run: tdd-llm config --set-backend jira")
+        raise typer.Exit(1)
+
+    if dry_run:
+        rprint("[yellow]Dry run mode - no issues will be created[/yellow]\n")
+
+    migrator = FilesToJiraMigrator(
+        jira_config=config.jira,
+        dry_run=dry_run,
+    )
+
+    # Progress display
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total}"),
+        console=console,
+    ) as progress:
+        task_id = progress.add_task("Migrating...", total=100)
+
+        def update_progress(current: int, total: int, message: str):
+            progress.update(task_id, completed=current, total=total, description=message)
+
+        result = migrator.migrate(progress_callback=update_progress)
+
+    # Show results
+    rprint()
+    if result.success:
+        rprint("[green]Migration completed![/green]")
+    else:
+        rprint("[red]Migration failed![/red]")
+
+    # Stats table
+    table = Table(title="Migration Results")
+    table.add_column("Item", style="bold")
+    table.add_column("Count", style="cyan")
+
+    table.add_row("Epics created", str(result.epics_created))
+    table.add_row("Tasks created", str(result.tasks_created))
+    if result.epics_skipped:
+        table.add_row("Epics skipped", str(result.epics_skipped))
+    if result.tasks_skipped:
+        table.add_row("Tasks skipped", str(result.tasks_skipped))
+
+    console.print(table)
+
+    # Show errors
+    if result.errors:
+        rprint("\n[red]Errors:[/red]")
+        for error in result.errors:
+            rprint(f"  - {error}")
+
+    # Save and show mapping
+    if result.mapping and not dry_run:
+        output_path = Path(output) if output else None
+        mapping_path = migrator.save_mapping(result.mapping, output_path)
+        rprint(f"\n[green]Mapping saved to:[/green] {mapping_path}")
+
+        # Show mapping preview
+        rprint("\n[bold]ID Mapping:[/bold]")
+        for local_id, jira_key in list(result.mapping.items())[:10]:
+            rprint(f"  {local_id} → {jira_key}")
+        if len(result.mapping) > 10:
+            rprint(f"  ... and {len(result.mapping) - 10} more")
+
+    elif result.mapping and dry_run:
+        rprint("\n[bold]Would create mapping:[/bold]")
+        for local_id, jira_key in list(result.mapping.items())[:10]:
+            rprint(f"  {local_id} → {jira_key}")
+
+    if not result.success:
+        raise typer.Exit(1)
+
+
+app.command(name="migrate")(_migrate_cmd)
+
+
+# ============================================================================
+# Backend commands - for AI assistants to interact with state backends
+# ============================================================================
+
+backend_app = typer.Typer(
+    name="backend",
+    help="Backend operations for TDD workflow state management.",
+    no_args_is_help=True,
+)
+
+
+def _get_backend():
+    """Get the configured backend instance."""
+    from .backends import get_backend
+
+    config = Config.load()
+    return get_backend(config)
+
+
+def _format_json(obj) -> str:
+    """Format object as JSON for output."""
+    import json
+    from dataclasses import asdict, is_dataclass
+
+    def serialize(o):
+        if is_dataclass(o):
+            return asdict(o)
+        if isinstance(o, list):
+            return [serialize(i) for i in o]
+        return o
+
+    return json.dumps(serialize(obj), indent=2)
+
+
+@backend_app.command(name="get-task")
+def backend_get_task(
+    task_id: Annotated[str, typer.Argument(help="Task ID (e.g., T1 or PROJ-1234)")],
+):
+    """Get task details from the configured backend.
+
+    Returns JSON with task information including title, description, status,
+    and acceptance criteria.
+    """
+    try:
+        backend = _get_backend()
+        task = backend.get_task(task_id)
+        print(_format_json(task))
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="get-epic")
+def backend_get_epic(
+    epic_id: Annotated[str, typer.Argument(help="Epic ID (e.g., E1 or PROJ-100)")],
+):
+    """Get epic details with all tasks from the configured backend.
+
+    Returns JSON with epic information including name, description, status,
+    and all tasks.
+    """
+    try:
+        backend = _get_backend()
+        epic = backend.get_epic(epic_id)
+        print(_format_json(epic))
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="status")
+def backend_status():
+    """Get current workflow state from the configured backend.
+
+    Returns JSON with current epic, task, and all epics with progress.
+    """
+    try:
+        backend = _get_backend()
+        state = backend.get_state()
+        print(_format_json(state))
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="update-status")
+def backend_update_status(
+    task_id: Annotated[str, typer.Argument(help="Task ID to update")],
+    status: Annotated[
+        str,
+        typer.Argument(
+            help="New status (not_started, in_progress, completed, or Jira status name)"
+        ),
+    ],
+):
+    """Update a task's status in the configured backend.
+
+    For Jira backend, you can use either TDD status names (not_started,
+    in_progress, completed) or Jira status names (To Do, In Progress, Done).
+    """
+    try:
+        backend = _get_backend()
+        backend.update_task_status(task_id, status)
+        rprint(f"[green]Updated {task_id} status to {status}[/green]")
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="set-phase")
+def backend_set_phase(
+    task_id: Annotated[str, typer.Argument(help="Task ID")],
+    phase: Annotated[
+        str,
+        typer.Argument(help="TDD phase (analyze, test, dev, docs, review)"),
+    ],
+):
+    """Set the TDD phase for a task.
+
+    For Jira backend, this adds a label like 'tdd:test' to the issue.
+    For files backend, this updates .tdd-state.local.json.
+    """
+    valid_phases = ["analyze", "test", "dev", "docs", "review"]
+    if phase not in valid_phases:
+        rprint(f"[red]Error:[/red] Invalid phase '{phase}'")
+        rprint(f"Valid phases: {', '.join(valid_phases)}")
+        raise typer.Exit(1)
+
+    try:
+        backend = _get_backend()
+        backend.set_phase(task_id, phase)
+        rprint(f"[green]Set {task_id} phase to {phase}[/green]")
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="set-current")
+def backend_set_current(
+    epic_id: Annotated[str, typer.Argument(help="Epic ID")],
+    task_id: Annotated[str | None, typer.Argument(help="Task ID (optional)")] = None,
+):
+    """Set the current active task.
+
+    This updates the local session state to track which task is being worked on.
+    """
+    try:
+        backend = _get_backend()
+        backend.set_current_task(epic_id, task_id)
+        if task_id:
+            rprint(f"[green]Set current task to {epic_id}/{task_id}[/green]")
+        else:
+            rprint(f"[green]Set current epic to {epic_id}[/green]")
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="next-task")
+def backend_next_task(
+    epic_id: Annotated[str, typer.Argument(help="Epic ID")],
+):
+    """Get the next incomplete task in an epic.
+
+    Returns JSON with the next task to work on, or an error if all tasks
+    are completed.
+    """
+    try:
+        backend = _get_backend()
+        task = backend.get_next_task(epic_id)
+        if task:
+            print(_format_json(task))
+        else:
+            rprint("[yellow]All tasks in epic are completed.[/yellow]")
+    except KeyError as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="add-comment")
+def backend_add_comment(
+    task_id: Annotated[str, typer.Argument(help="Task ID")],
+    comment: Annotated[str, typer.Argument(help="Comment text")],
+):
+    """Add a comment to a task (Jira backend only).
+
+    For Jira backend, adds a comment to the issue.
+    For files backend, this command is a no-op.
+    """
+    try:
+        backend = _get_backend()
+        if backend.add_comment(task_id, comment):
+            rprint(f"[green]Added comment to {task_id}[/green]")
+        else:
+            rprint("[yellow]Comments not supported for this backend.[/yellow]")
+    except Exception as e:
+        rprint(f"[red]Error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+app.add_typer(backend_app)
+
+
+# ============================================================================
+# Jira authentication commands
+# ============================================================================
+
+jira_app = typer.Typer(
+    name="jira",
+    help="Jira authentication and configuration.",
+    no_args_is_help=True,
+)
+
+
+@jira_app.command(name="login")
+def jira_login(
+    port: Annotated[
+        int,
+        typer.Option("--port", "-p", help="Callback server port"),
+    ] = 8089,
+    no_browser: Annotated[
+        bool,
+        typer.Option("--no-browser", help="Don't auto-open browser"),
+    ] = False,
+    timeout: Annotated[
+        int,
+        typer.Option("--timeout", "-t", help="Authorization timeout in seconds"),
+    ] = 300,
+):
+    """Authenticate with Jira using OAuth 2.0.
+
+    This will:
+    1. Open your browser to Atlassian authorization page
+    2. Start a local server to receive the callback
+    3. Exchange the authorization code for access tokens
+    4. Store encrypted tokens locally
+
+    If this is your first time, you'll be prompted for your OAuth credentials.
+    Create an OAuth app at https://developer.atlassian.com/console/myapps/ first.
+    """
+    from .backends.jira.auth import JiraAuthManager, OAuthConfigurationError, OAuthError
+
+    config = Config.load()
+    auth_manager = JiraAuthManager(config.jira)
+
+    # Check if we need to get credentials from user
+    client_id = None
+    client_secret = None
+
+    if not auth_manager.is_oauth_available():
+        rprint("\n[bold cyan]Jira OAuth Setup[/bold cyan]")
+        rprint("No OAuth credentials found. Let's set them up.\n")
+        rprint("First, create an OAuth app at:")
+        rprint("  [cyan]https://developer.atlassian.com/console/myapps/[/cyan]\n")
+        rprint("Configure your app with:")
+        rprint(f"  Callback URL: [cyan]http://localhost:{port}/callback[/cyan]")
+        rprint(
+            "  Permissions: [dim]Jira API > read:jira-work, write:jira-work, read:jira-user[/dim]\n"
+        )
+
+        client_id = typer.prompt("OAuth Client ID")
+        client_secret = typer.prompt("OAuth Client Secret", hide_input=True)
+
+    rprint("\n[bold cyan]Jira OAuth Login[/bold cyan]")
+    rprint(f"Starting callback server on port {port}...")
+
+    if not no_browser:
+        rprint("Opening browser for Atlassian authorization...")
+    else:
+        rprint("Browser auto-open disabled. URL will be displayed below.")
+
+    rprint(f"\nWaiting for authorization (timeout: {timeout} seconds)...\n")
+
+    try:
+        tokens = auth_manager.login(
+            port=port,
+            open_browser=not no_browser,
+            timeout=timeout,
+            client_id=client_id,
+            client_secret=client_secret,
+        )
+        rprint("[green]Successfully authenticated![/green]")
+        rprint(f"  Site: [cyan]{tokens.site_url}[/cyan]")
+        rprint(f"  Cloud ID: [dim]{tokens.cloud_id[:8]}...[/dim]")
+        rprint(f"  Credentials and tokens stored in: [dim]{auth_manager.storage.config_dir}[/dim]")
+    except OAuthConfigurationError as e:
+        rprint(f"\n[red]Configuration error:[/red] {e}")
+        raise typer.Exit(1)
+    except OAuthError as e:
+        rprint(f"\n[red]Login failed:[/red] {e}")
+        raise typer.Exit(1)
+    except Exception as e:
+        rprint(f"\n[red]Unexpected error:[/red] {e}")
+        raise typer.Exit(1)
+
+
+@jira_app.command(name="logout")
+def jira_logout(
+    keep_credentials: Annotated[
+        bool,
+        typer.Option("--keep-credentials", help="Keep stored OAuth credentials"),
+    ] = False,
+):
+    """Remove stored Jira OAuth tokens and credentials."""
+    from .backends.jira.auth import TokenStorage
+
+    storage = TokenStorage()
+    tokens = storage.load_tokens()
+    credentials = storage.load_credentials()
+
+    if tokens is None and credentials is None:
+        rprint("[yellow]No OAuth data stored.[/yellow]")
+        raise typer.Exit(0)
+
+    if tokens:
+        rprint(f"Current authentication: [cyan]{tokens.site_url}[/cyan]")
+
+    if keep_credentials:
+        if typer.confirm("Remove OAuth tokens (keep credentials)?", default=False):
+            storage.delete_tokens()
+            rprint("[green]OAuth tokens removed. Credentials kept.[/green]")
+        else:
+            rprint("Cancelled.")
+    else:
+        if typer.confirm("Remove all OAuth data (tokens and credentials)?", default=False):
+            storage.delete_all()
+            rprint("[green]OAuth tokens and credentials removed.[/green]")
+        else:
+            rprint("Cancelled.")
+
+
+@jira_app.command(name="status")
+def jira_auth_status():
+    """Show Jira authentication status."""
+    from datetime import datetime
+
+    from .backends.jira.auth import TokenStorage
+
+    config = Config.load()
+    storage = TokenStorage()
+
+    table = Table(title="Jira Authentication Status")
+    table.add_column("Setting", style="bold")
+    table.add_column("Value")
+
+    # Check stored credentials
+    credentials = storage.load_credentials()
+    if credentials:
+        table.add_row(
+            "Stored Credentials",
+            "[green]yes[/green]",
+        )
+        client_id_display = (
+            f"{credentials.client_id[:12]}..."
+            if len(credentials.client_id) > 12
+            else credentials.client_id
+        )
+        table.add_row("Client ID", client_id_display)
+    else:
+        # Check env var / config
+        oauth_configured = config.jira.is_oauth_configured()
+        table.add_row(
+            "OAuth (env vars)",
+            "[green]configured[/green]" if oauth_configured else "[dim]not set[/dim]",
+        )
+
+    # Check stored tokens
+    tokens = storage.load_tokens()
+
+    if tokens:
+        expires = datetime.fromtimestamp(tokens.expires_at)
+        is_expired = tokens.is_expired()
+
+        table.add_row(
+            "Token Status",
+            "[red]expired[/red]" if is_expired else "[green]valid[/green]",
+        )
+        table.add_row("Expires", expires.strftime("%Y-%m-%d %H:%M:%S"))
+        table.add_row("Site", tokens.site_url)
+        table.add_row("Cloud ID", f"{tokens.cloud_id[:8]}...")
+    else:
+        table.add_row("Token Status", "[yellow]not logged in[/yellow]")
+
+    # Check API token fallback
+    table.add_row("", "")  # Separator
+    table.add_row("[dim]API Token Fallback[/dim]", "")
+    has_api_token = bool(config.jira.api_token)
+    table.add_row(
+        "API Token",
+        "[green]set[/green]" if has_api_token else "[dim]not set[/dim]",
+    )
+    if config.jira.effective_base_url:
+        table.add_row("Base URL", config.jira.effective_base_url)
+    if config.jira.effective_email:
+        table.add_row("Email", config.jira.effective_email)
+
+    console.print(table)
+
+    # Summary
+    rprint()
+    if tokens and not tokens.is_expired():
+        rprint("[green]Ready to use Jira with OAuth.[/green]")
+    elif has_api_token and config.jira.effective_base_url and config.jira.effective_email:
+        rprint("[yellow]Using API token authentication (OAuth not configured or expired).[/yellow]")
+    else:
+        rprint("[red]Jira not configured.[/red] Run 'tdd-llm jira login' or set JIRA_API_TOKEN.")
+
+
+app.add_typer(jira_app)
 
 
 if __name__ == "__main__":

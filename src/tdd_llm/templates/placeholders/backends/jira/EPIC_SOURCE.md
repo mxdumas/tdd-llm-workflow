@@ -1,17 +1,34 @@
 **Epic source: Jira**
 
-Use the MCP Jira server to fetch epic and story information:
+Fetch epic and all its tasks using CLI:
 
-```
-Use the Jira MCP tool to:
-1. Fetch epic details: GET /rest/api/3/issue/{EPIC_KEY}
-2. Fetch stories: JQL search for issues linked to epic
-3. Get story details including description, acceptance criteria
+```bash
+tdd-llm backend get-epic {epic_id}
 ```
 
-Map Jira fields to TDD context:
-- Epic.summary -> Epic name
-- Epic.description -> Epic objective
-- Story.summary -> Task title
-- Story.description -> Task description
-- Story.acceptanceCriteria -> Completion criteria
+Returns JSON:
+```json
+{
+  "id": "PROJ-100",
+  "name": "Epic name",
+  "description": "Epic description/objective",
+  "status": "in_progress",
+  "tasks": [
+    {
+      "id": "PROJ-1234",
+      "epic_id": "PROJ-100",
+      "title": "Task title",
+      "description": "...",
+      "status": "completed",
+      "acceptance_criteria": "...",
+      "phase": null
+    }
+  ]
+}
+```
+
+Fields are mapped from Jira:
+- Epic `summary` → name
+- Epic `description` → description
+- Epic workflow status → status
+- Child issues (Stories/Tasks) → tasks array

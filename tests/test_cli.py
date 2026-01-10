@@ -169,7 +169,12 @@ class TestConfigCommand:
     def test_config_set_valid_backend(self, temp_dir):
         """Test config --set-backend with valid value."""
         with mock.patch("tdd_llm.paths.get_config_dir", return_value=temp_dir):
-            result = runner.invoke(app, ["config", "--set-backend", "jira"])
+            # Input for Jira wizard: url, email, project_key
+            result = runner.invoke(
+                app,
+                ["config", "--set-backend", "jira"],
+                input="https://test.atlassian.net\ntest@example.com\nTEST\n",
+            )
             assert result.exit_code == 0
             assert "jira" in result.output.lower()
 
@@ -263,10 +268,11 @@ class TestSetupCommand:
         """Test setup wizard accepts user input."""
         with mock.patch("tdd_llm.cli.is_first_run", return_value=True):
             with mock.patch("tdd_llm.config.get_config_dir", return_value=temp_dir):
+                # Input: confirm, lang, backend, jira_url, jira_email, jira_project, target, platforms, coverage_line, coverage_branch
                 result = runner.invoke(
                     app,
                     ["setup"],
-                    input="y\ntypescript\njira\nuser\nclaude\n90\n85\n",
+                    input="y\ntypescript\njira\nhttps://test.atlassian.net\ntest@example.com\nTEST\nuser\nclaude\n90\n85\n",
                 )
                 assert result.exit_code == 0
                 assert "configuration saved" in result.output.lower()
