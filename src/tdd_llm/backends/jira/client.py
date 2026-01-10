@@ -74,9 +74,7 @@ class JiraIssue:
         fields = data.get("fields", {})
 
         # Extract custom fields
-        custom_fields = {
-            k: v for k, v in fields.items() if k.startswith("customfield_")
-        }
+        custom_fields = {k: v for k, v in fields.items() if k.startswith("customfield_")}
 
         # Extract parent key (Jira Cloud style)
         parent = fields.get("parent")

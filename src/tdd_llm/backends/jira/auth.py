@@ -81,8 +81,7 @@ def _check_cryptography() -> None:
     """Check that cryptography is installed."""
     if Fernet is None:
         raise OAuthError(
-            "cryptography package is required for OAuth. "
-            "Install with: pip install cryptography"
+            "cryptography package is required for OAuth. Install with: pip install cryptography"
         )
 
 
@@ -500,9 +499,7 @@ class JiraOAuthFlow:
         }
         return f"{ATLASSIAN_AUTH_URL}?{urllib.parse.urlencode(params)}"
 
-    def exchange_code_for_tokens(
-        self, code: str, redirect_uri: str
-    ) -> tuple[str, str, int]:
+    def exchange_code_for_tokens(self, code: str, redirect_uri: str) -> tuple[str, str, int]:
         """Exchange authorization code for access/refresh tokens.
 
         Args:
@@ -564,8 +561,7 @@ class JiraOAuthFlow:
             if response.status_code != 200:
                 error = response.json().get("error_description", response.text)
                 raise OAuthTokenError(
-                    f"Token refresh failed: {error}. "
-                    "Please run 'tdd-llm jira login' again."
+                    f"Token refresh failed: {error}. Please run 'tdd-llm jira login' again."
                 )
 
             data = response.json()
@@ -674,9 +670,7 @@ class JiraAuthManager:
         tokens = self.get_tokens()
 
         if tokens is None:
-            raise OAuthTokenError(
-                "Not authenticated. Run 'tdd-llm jira login' first."
-            )
+            raise OAuthTokenError("Not authenticated. Run 'tdd-llm jira login' first.")
 
         if force_refresh or tokens.is_expired():
             # Refresh the token
@@ -788,9 +782,7 @@ class JiraAuthManager:
 
         try:
             # Generate and open authorization URL
-            auth_url = oauth_flow.get_authorization_url(
-                callback_server.redirect_uri, state
-            )
+            auth_url = oauth_flow.get_authorization_url(callback_server.redirect_uri, state)
 
             if open_browser:
                 webbrowser.open(auth_url)

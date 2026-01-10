@@ -532,7 +532,9 @@ def _config_cmd(
             )
 
             rprint("\n[yellow]Note:[/yellow] Set the JIRA_API_TOKEN environment variable")
-            rprint("Generate a token at: https://id.atlassian.com/manage-profile/security/api-tokens")
+            rprint(
+                "Generate a token at: https://id.atlassian.com/manage-profile/security/api-tokens"
+            )
 
     if set_target:
         if set_target not in ("project", "user"):
@@ -1055,8 +1057,7 @@ def jira_login(
         rprint("Configure your app with:")
         rprint(f"  Callback URL: [cyan]http://localhost:{port}/callback[/cyan]")
         rprint(
-            "  Permissions: [dim]Jira API > read:jira-work, write:jira-work, "
-            "read:jira-user[/dim]\n"
+            "  Permissions: [dim]Jira API > read:jira-work, write:jira-work, read:jira-user[/dim]\n"
         )
 
         client_id = typer.prompt("OAuth Client ID")

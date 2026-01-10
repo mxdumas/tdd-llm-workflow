@@ -113,9 +113,7 @@ class JiraConfig:
 
     def is_oauth_configured(self) -> bool:
         """Check if OAuth credentials are configured."""
-        return bool(
-            self.effective_oauth_client_id and self.effective_oauth_client_secret
-        )
+        return bool(self.effective_oauth_client_id and self.effective_oauth_client_secret)
 
     def is_configured(self) -> bool:
         """Check if Jira is properly configured (any auth method)."""
@@ -123,9 +121,7 @@ class JiraConfig:
         if self.is_oauth_configured():
             return True
         # API Token: need base_url, email, api_token
-        return bool(
-            self.effective_base_url and self.effective_email and self.api_token
-        )
+        return bool(self.effective_base_url and self.effective_email and self.api_token)
 
     def get_tdd_status(self, jira_status: str) -> str:
         """Map Jira status to TDD status.

@@ -143,7 +143,7 @@ class JiraBackend:
         task_types = ", ".join(f'"{t}"' for t in self.config.task_issue_types)
         jql = (
             f'project = "{project}" AND parent = "{epic_key}" '
-            f'AND issuetype in ({task_types}) ORDER BY rank'
+            f"AND issuetype in ({task_types}) ORDER BY rank"
         )
 
         issues = self.client.search(jql)
@@ -281,7 +281,8 @@ class JiraBackend:
         """Set the TDD phase for a task using Jira labels."""
         # Remove existing phase labels and add new one
         remove_labels = [
-            label for label in self.client.get_issue(task_id).labels
+            label
+            for label in self.client.get_issue(task_id).labels
             if label.startswith(PHASE_LABEL_PREFIX)
         ]
 
