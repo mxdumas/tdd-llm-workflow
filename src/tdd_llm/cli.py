@@ -1010,6 +1010,7 @@ def backend_add_comment(
 
 def handle_cli_errors(func):
     """Decorator to handle common CLI errors for backend commands."""
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -1020,6 +1021,7 @@ def handle_cli_errors(func):
         except Exception as e:
             rprint(f"[red]Error:[/red] {e}")
             raise typer.Exit(1)
+
     return wrapper
 
 
