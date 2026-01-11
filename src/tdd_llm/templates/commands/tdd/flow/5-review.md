@@ -14,7 +14,6 @@ Verify `.tdd-state.local.json`: `current.phase` must be "review".
 Review the **Scope** section in `.tdd-context.md` and verify each item:
 - Check that every scope item has been implemented
 - For each item, identify the file(s) and test(s) that implement it
-- If any scope item is missing or incomplete, **STOP** and inform the user
 
 Present a checklist:
 ```
@@ -25,7 +24,7 @@ Present a checklist:
 - [ ] Item 3: NOT IMPLEMENTED - missing XYZ
 ```
 
-If any item is unchecked, return to `/tdd:flow:3-dev` to complete implementation.
+If any item is unchecked, **STOP**, inform the user, and return to `/tdd:flow:3-dev` to complete implementation.
 
 ### 3. Build and tests
 
