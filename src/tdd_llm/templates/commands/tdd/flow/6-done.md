@@ -14,21 +14,6 @@ Verify `.tdd-state.local.json`: `current.phase` must be "done".
 
 {{STATE_UPDATE}}
 
-**In `docs/state.json`:**
-
-```json
-{
-  "epics": {
-    "{epic_id}": {
-      "status": "in_progress",
-      "completed": [..., "{task_id}"]
-    }
-  }
-}
-```
-
-If all epic tasks completed: set `status` = "completed".
-
 **Reset `.tdd-state.local.json`:**
 
 ```json
@@ -56,11 +41,7 @@ Update `.tdd-epic-context.md` status:
 
 ### 4. Commit state changes
 
-```bash
-git add docs/state.json .tdd-state.local.json .tdd-epic-context.md docs/epics/
-git commit -m "{task_id}: finalize"
-git push
-```
+{{STATE_COMMIT}}
 
 ### 5. Final report
 

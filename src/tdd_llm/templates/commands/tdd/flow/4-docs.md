@@ -34,13 +34,11 @@ Verify `.tdd-state.local.json`: `current.phase` must be "docs".
 - Follow existing format in the project (check similar files)
 - Add those that are missing
 
-### 4. Check documentation to update
+### 4. Update user documentation
+
+**IMPORTANT:** New features and behavior changes MUST have user documentation. Don't skip this.
 
 **Read `{{AGENT_FILE}}` section "Documentation Structure"** for project doc locations.
-
-For each documentation type listed:
-- Check if task changes require an update
-- If yes, update now
 
 **If section not found in `{{AGENT_FILE}}`:** Discover doc structure and add it:
 ```bash
@@ -48,14 +46,19 @@ For each documentation type listed:
 find . -type d -name "doc*" -o -name "wiki" -o -name "help" 2>/dev/null | head -10
 ```
 
-**Common doc types:**
+**For each documentation type below, explicitly verify and update:**
 
-| Type | Update if... |
-|------|--------------|
-| **Dev docs** (`docs/dev/`, `docs/api/`) | API changes, new patterns |
-| **User docs** (`docs/user/`, `help/`) | UI changes, new features, behavior changes |
-| **API specs** (`openapi.yaml`, `swagger.json`) | Endpoint changes |
-| **Project context** (`README.md`, `{{AGENT_FILE}}`) | Important patterns, setup changes |
+| Type | MUST update if... | Action |
+|------|-------------------|--------|
+| **User docs** (`docs/user/`, `help/`) | New feature, UI change, behavior change | Add/update usage guide |
+| **Dev docs** (`docs/dev/`, `docs/api/`) | API changes, new patterns | Update API docs |
+| **API specs** (`openapi.yaml`, `swagger.json`) | Endpoint changes | Update spec file |
+| **Project context** (`README.md`, `{{AGENT_FILE}}`) | Important patterns, setup changes | Update relevant sections |
+
+**For new features specifically:**
+1. Find the appropriate user doc file (or create one if needed)
+2. Document: what it does, how to use it, example usage
+3. If CLI command: add to command reference
 
 ### 5. Validate existing examples
 
@@ -90,8 +93,8 @@ Add final section:
 ## Documentation
 - CHANGELOG updated ([Added/Changed/Fixed])
 - Code docs: Complete
+- User docs: [file] / N/A (reason)
 - ADR: [NNN-title] / Not needed
-- Other docs: [list] / None
 ```
 
 ### 8. Update phase
@@ -106,16 +109,16 @@ Set `current.phase` = "review" in `.tdd-state.local.json`.
 ### Updated
 - `CHANGELOG.md` - Section [Added/Changed/Fixed]
 - Code docs: [N] added / Already complete
+- User docs: [file updated] / N/A (reason: [bug fix only / internal refactor / no user-visible change])
 - [list any other docs updated]
 
 ### Created
 - `docs/decisions/[NNN-title].md` / No ADR needed
 
-### Verified (no change needed)
-- [list docs checked]
-
 Run `/tdd:flow:5-review` for review and PR creation.
 ```
+
+**Note:** If user docs show "N/A", you MUST provide a valid reason. "New feature" or "behavior change" are NOT valid reasons to skip user docs.
 
 ## CHANGELOG best practices
 

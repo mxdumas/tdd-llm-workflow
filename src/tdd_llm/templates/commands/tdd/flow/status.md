@@ -6,20 +6,9 @@ Display current TDD project state: current epic, task, phase, progress.
 
 ### 1. Load state
 
-Read in parallel:
-- `docs/state.json` (global state: epics, completed tasks)
-- `.tdd-state.local.json` (local state: current task, phase, skip_phases)
+{{STATE_SOURCE}}
 
 {{STATE_READ}}
-
-If `docs/state.json` doesn't exist -> display:
-```
-## Project not initialized
-
-No `docs/state.json` file found.
-
-Run `/tdd:init:1-project` to initialize the project.
-```
 
 If `.tdd-state.local.json` doesn't exist -> create with:
 ```json

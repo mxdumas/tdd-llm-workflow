@@ -7,9 +7,7 @@ Act as a **Senior Architect** to prepare the ground before any code.
 
 ### 1. Load state
 
-Read in parallel:
-- `docs/state.json` (global state: epics, completed tasks)
-- `.tdd-state.local.json` (local state: current task, phase, skip_phases)
+{{STATE_SOURCE}}
 
 {{STATE_READ}}
 
@@ -97,7 +95,7 @@ Launch exploration agent:
 ```
 Code Scout for {task_id}. Report facts only, don't solve.
 1. Read docs/dev/architecture.md, docs/dev/standards.md
-2. Read task description (file or state.json)
+2. Read task description from backend
 3. List impacted files (max 10 paths)
 4. Find similar patterns (max 3 paths)
 ```
