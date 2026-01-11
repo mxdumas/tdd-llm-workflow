@@ -146,7 +146,7 @@ class JiraBackend:
             f"AND issuetype in ({task_types}) ORDER BY rank"
         )
 
-        issues = self.client.search(jql)
+        issues, _ = self.client.search(jql)
         return [self._issue_to_task(issue, epic_id=epic_key) for issue in issues]
 
     def get_epic(self, epic_id: str) -> Epic:
@@ -178,7 +178,7 @@ class JiraBackend:
 
         jql += " ORDER BY rank"
 
-        issues = self.client.search(jql)
+        issues, _ = self.client.search(jql)
         epics = []
 
         for issue in issues:

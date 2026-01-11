@@ -18,6 +18,8 @@ class MigrationResult:
     success: bool = True
     epics_created: int = 0
     tasks_created: int = 0
+    epics_updated: int = 0
+    tasks_updated: int = 0
     epics_skipped: int = 0
     tasks_skipped: int = 0
     mapping: dict[str, str] = field(default_factory=dict)
@@ -45,6 +47,7 @@ class FilesToJiraMigrator:
         self.dry_run = dry_run
         self.files_backend = FilesBackend(project_root=self.project_root)
         self._client: JiraClient | None = None
+        self._existing_mapping: dict[str, str] = {}
 
     @property
     def client(self) -> JiraClient:
@@ -52,6 +55,23 @@ class FilesToJiraMigrator:
         if self._client is None:
             self._client = JiraClient(self.jira_config)
         return self._client
+
+    def load_mapping(self, path: Path | None = None) -> dict[str, str]:
+        """Load existing ID mapping from JSON file.
+
+        Args:
+            path: Input path. Defaults to docs/jira-mapping.json.
+
+        Returns:
+            Dict of local_id -> jira_key, empty if file doesn't exist.
+        """
+        input_path = path or (self.project_root / "docs" / "jira-mapping.json")
+
+        if not input_path.exists():
+            return {}
+
+        with open(input_path, encoding="utf-8") as f:
+            return json.load(f)
 
     def _create_epic_in_jira(self, epic_id: str, name: str, description: str) -> str | None:
         """Create an epic in Jira.
@@ -91,6 +111,49 @@ class FilesToJiraMigrator:
 
         data = self.client.create_issue(payload)
         return data.get("key")  # type: ignore
+
+    def _update_epic_in_jira(
+        self, jira_key: str, epic_id: str, name: str, description: str, status: str
+    ) -> bool:
+        """Update an existing epic in Jira.
+
+        Args:
+            jira_key: Jira issue key (e.g., PROJ-123).
+            epic_id: Local epic ID (E1, E2, etc.)
+            name: Epic name.
+            description: Epic description.
+            status: Epic status from state.json (completed, in_progress, not_started).
+
+        Returns:
+            True if updated successfully.
+        """
+        if self.dry_run:
+            return True
+
+        payload = {
+            "fields": {
+                "summary": f"{epic_id}: {name}",
+                "description": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": description or "No description"}],
+                        }
+                    ],
+                },
+            }
+        }
+
+        self.client.update_issue(jira_key, payload)
+
+        # Transition based on status using configured Jira status names
+        if status in ("completed", "in_progress"):
+            jira_status = self.jira_config.get_jira_status(status)
+            self.client.transition_to_status(jira_key, jira_status)
+
+        return True
 
     def _create_task_in_jira(
         self,
@@ -150,11 +213,69 @@ class FilesToJiraMigrator:
         data = self.client.create_issue(payload)
         task_key = data.get("key")  # type: ignore
 
-        # Transition to Done if completed
+        # Transition to Done if completed using configured Jira status name
         if is_completed and task_key and not self.dry_run:
-            self.client.transition_to_status(task_key, "Done")
+            jira_status = self.jira_config.get_jira_status("completed")
+            self.client.transition_to_status(task_key, jira_status)
 
         return task_key
+
+    def _update_task_in_jira(
+        self,
+        jira_key: str,
+        task_id: str,
+        title: str,
+        description: str,
+        acceptance_criteria: str | None,
+        is_completed: bool,
+    ) -> bool:
+        """Update an existing task in Jira.
+
+        Args:
+            jira_key: Jira issue key (e.g., PROJ-456).
+            task_id: Local task ID (T1, T2, etc.)
+            title: Task title.
+            description: Task description.
+            acceptance_criteria: Acceptance criteria.
+            is_completed: Whether task is completed.
+
+        Returns:
+            True if updated successfully.
+        """
+        if self.dry_run:
+            return True
+
+        # Build description with acceptance criteria
+        full_description = description or ""
+        if acceptance_criteria:
+            full_description += f"\n\n**Acceptance Criteria:**\n{acceptance_criteria}"
+
+        payload = {
+            "fields": {
+                "summary": f"{task_id}: {title}",
+                "description": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": full_description or "No description"}
+                            ],
+                        }
+                    ],
+                },
+            }
+        }
+
+        self.client.update_issue(jira_key, payload)
+
+        # Transition to Done if completed using configured Jira status name
+        if is_completed:
+            jira_status = self.jira_config.get_jira_status("completed")
+            self.client.transition_to_status(jira_key, jira_status)
+
+        return True
 
     def migrate(self, progress_callback=None) -> MigrationResult:
         """Run the migration.
@@ -168,6 +289,10 @@ class FilesToJiraMigrator:
         result = MigrationResult()
 
         try:
+            # Load existing mapping to avoid duplicates
+            self._existing_mapping = self.load_mapping()
+            result.mapping = dict(self._existing_mapping)
+
             # Load all epics from files backend
             epics = self.files_backend.list_epics()
 
@@ -180,24 +305,71 @@ class FilesToJiraMigrator:
             current = 0
 
             for epic in epics:
-                if progress_callback:
-                    progress_callback(current, total_items, f"Creating epic {epic.id}")
+                existing_epic_key = self._existing_mapping.get(epic.id)
 
-                try:
-                    # Create epic in Jira
-                    epic_key = self._create_epic_in_jira(
-                        epic_id=epic.id,
-                        name=epic.name,
-                        description=epic.description,
-                    )
+                if existing_epic_key:
+                    # Update existing epic
+                    if progress_callback:
+                        progress_callback(current, total_items, f"Updating epic {epic.id}")
 
-                    if epic_key:
-                        result.mapping[epic.id] = epic_key
-                        result.epics_created += 1
+                    try:
+                        self._update_epic_in_jira(
+                            jira_key=existing_epic_key,
+                            epic_id=epic.id,
+                            name=epic.name,
+                            description=epic.description,
+                            status=epic.status,
+                        )
+                        result.epics_updated += 1
+                        epic_key = existing_epic_key
+                    except Exception as e:
+                        result.errors.append(f"Failed to update epic {epic.id}: {e}")
+                        epic_key = existing_epic_key  # Keep using existing key for tasks
+                else:
+                    # Create new epic
+                    if progress_callback:
+                        progress_callback(current, total_items, f"Creating epic {epic.id}")
 
-                        # Create tasks for this epic
-                        for task in epic.tasks:
-                            current += 1
+                    try:
+                        epic_key = self._create_epic_in_jira(
+                            epic_id=epic.id,
+                            name=epic.name,
+                            description=epic.description,
+                        )
+
+                        if epic_key:
+                            result.mapping[epic.id] = epic_key
+                            result.epics_created += 1
+                    except Exception as e:
+                        result.errors.append(f"Failed to create epic {epic.id}: {e}")
+                        epic_key = None
+
+                if epic_key:
+                    # Process tasks for this epic
+                    for task in epic.tasks:
+                        current += 1
+                        task_mapping_key = f"{epic.id}/{task.id}"
+                        existing_task_key = self._existing_mapping.get(task_mapping_key)
+
+                        if existing_task_key:
+                            # Update existing task
+                            if progress_callback:
+                                progress_callback(current, total_items, f"Updating task {task.id}")
+
+                            try:
+                                self._update_task_in_jira(
+                                    jira_key=existing_task_key,
+                                    task_id=task.id,
+                                    title=task.title,
+                                    description=task.description,
+                                    acceptance_criteria=task.acceptance_criteria,
+                                    is_completed=(task.status == "completed"),
+                                )
+                                result.tasks_updated += 1
+                            except Exception as e:
+                                result.errors.append(f"Failed to update task {task.id}: {e}")
+                        else:
+                            # Create new task
                             if progress_callback:
                                 progress_callback(current, total_items, f"Creating task {task.id}")
 
@@ -212,15 +384,11 @@ class FilesToJiraMigrator:
                                 )
 
                                 if task_key:
-                                    # Map as epic_id/task_id -> jira_key
-                                    result.mapping[f"{epic.id}/{task.id}"] = task_key
+                                    result.mapping[task_mapping_key] = task_key
                                     result.tasks_created += 1
 
                             except Exception as e:
                                 result.errors.append(f"Failed to create task {task.id}: {e}")
-
-                except Exception as e:
-                    result.errors.append(f"Failed to create epic {epic.id}: {e}")
 
                 current += 1
 

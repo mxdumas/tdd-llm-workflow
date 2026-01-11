@@ -753,6 +753,10 @@ def _migrate_cmd(
 
     table.add_row("Epics created", str(result.epics_created))
     table.add_row("Tasks created", str(result.tasks_created))
+    if result.epics_updated:
+        table.add_row("Epics updated", str(result.epics_updated))
+    if result.tasks_updated:
+        table.add_row("Tasks updated", str(result.tasks_updated))
     if result.epics_skipped:
         table.add_row("Epics skipped", str(result.epics_skipped))
     if result.tasks_skipped:
