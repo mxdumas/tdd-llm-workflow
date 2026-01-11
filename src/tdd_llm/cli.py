@@ -1,5 +1,6 @@
 """CLI interface for tdd-llm."""
 
+import functools
 from typing import Annotated
 
 import click
@@ -1007,7 +1008,23 @@ def backend_add_comment(
         raise typer.Exit(1)
 
 
+def handle_cli_errors(func):
+    """Decorator to handle common CLI errors for backend commands."""
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (KeyError, ValueError) as e:
+            rprint(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
+        except Exception as e:
+            rprint(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
+    return wrapper
+
+
 @backend_app.command(name="list-epics")
+@handle_cli_errors
 def backend_list_epics(
     status: Annotated[
         str | None,
@@ -1018,16 +1035,13 @@ def backend_list_epics(
 
     Returns JSON array with epic details including progress.
     """
-    try:
-        backend = _get_backend()
-        epics = backend.list_epics(status=status)
-        print(_format_json(epics))
-    except Exception as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+    backend = _get_backend()
+    epics = backend.list_epics(status=status)
+    print(_format_json(epics))
 
 
 @backend_app.command(name="list-stories")
+@handle_cli_errors
 def backend_list_stories(
     epic_id: Annotated[str, typer.Argument(help="Epic ID to list stories from")],
     status: Annotated[
@@ -1039,25 +1053,19 @@ def backend_list_stories(
 
     Returns JSON array with task details.
     """
-    try:
-        backend = _get_backend()
-        epic = backend.get_epic(epic_id)
-        tasks = epic.tasks
+    backend = _get_backend()
+    epic = backend.get_epic(epic_id)
+    tasks = epic.tasks
 
-        # Filter by status if specified
-        if status:
-            tasks = [t for t in tasks if t.status == status]
+    # Filter by status if specified
+    if status:
+        tasks = [t for t in tasks if t.status == status]
 
-        print(_format_json(tasks))
-    except KeyError as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
-    except Exception as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+    print(_format_json(tasks))
 
 
 @backend_app.command(name="create-epic")
+@handle_cli_errors
 def backend_create_epic(
     name: Annotated[str, typer.Argument(help="Epic name/title")],
     description: Annotated[str, typer.Argument(help="Epic description")],
@@ -1073,20 +1081,14 @@ def backend_create_epic(
 
     Returns JSON with the created epic details.
     """
-    try:
-        backend = _get_backend()
-        epic = backend.create_epic(name=name, description=description, epic_id=epic_id)
-        print(_format_json(epic))
-        rprint(f"\n[green]Created epic {epic.id}[/green]")
-    except ValueError as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
-    except Exception as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+    backend = _get_backend()
+    epic = backend.create_epic(name=name, description=description, epic_id=epic_id)
+    print(_format_json(epic))
+    rprint(f"\n[green]Created epic {epic.id}[/green]")
 
 
 @backend_app.command(name="create-story")
+@handle_cli_errors
 def backend_create_story(
     epic_id: Annotated[str, typer.Argument(help="Parent epic ID")],
     title: Annotated[str, typer.Argument(help="Story/task title")],
@@ -1107,26 +1109,16 @@ def backend_create_story(
 
     Returns JSON with the created task details.
     """
-    try:
-        backend = _get_backend()
-        task = backend.create_task(
-            epic_id=epic_id,
-            title=title,
-            description=description,
-            acceptance_criteria=acceptance_criteria,
-            task_id=task_id,
-        )
-        print(_format_json(task))
-        rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
-    except KeyError as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
-    except ValueError as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
-    except Exception as e:
-        rprint(f"[red]Error:[/red] {e}")
-        raise typer.Exit(1)
+    backend = _get_backend()
+    task = backend.create_task(
+        epic_id=epic_id,
+        title=title,
+        description=description,
+        acceptance_criteria=acceptance_criteria,
+        task_id=task_id,
+    )
+    print(_format_json(task))
+    rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
 
 
 app.add_typer(backend_app)

@@ -483,12 +483,12 @@ class FilesBackend:
         # Generate or validate epic ID
         if epic_id is None:
             epic_id = self._get_next_epic_id(state)
-        elif epic_id in state.get("epics", {}):
-            raise ValueError(f"Epic {epic_id} already exists")
-
-        # Ensure ID format
-        if not epic_id.startswith("E"):
-            epic_id = f"E{epic_id}"
+        else:
+            # Ensure ID format before checking for existence
+            if not epic_id.startswith("E"):
+                epic_id = f"E{epic_id}"
+            if epic_id in state.get("epics", {}):
+                raise ValueError(f"Epic {epic_id} already exists")
 
         # Create epic file
         self.epics_dir.mkdir(parents=True, exist_ok=True)
@@ -548,15 +548,15 @@ class FilesBackend:
         if task_id is None:
             task_id = self._get_next_task_id(epic_id)
         else:
+            # Ensure ID format before checking for existence
+            if not task_id.startswith("T"):
+                task_id = f"T{task_id}"
+
             # Check if task already exists
             _, _, existing_tasks = self._parse_epic_file(epic_id)
             for t in existing_tasks:
                 if t["id"] == task_id:
                     raise ValueError(f"Task {task_id} already exists in {epic_id}")
-
-        # Ensure ID format
-        if not task_id.startswith("T"):
-            task_id = f"T{task_id}"
 
         # Read existing content
         content = file_path.read_text(encoding="utf-8")
