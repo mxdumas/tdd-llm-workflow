@@ -348,34 +348,39 @@ class JiraClient:
         jql: str,
         fields: list[str] | None = None,
         max_results: int = 50,
-        start_at: int = 0,
-    ) -> list[JiraIssue]:
+        next_page_token: str | None = None,
+    ) -> tuple[list[JiraIssue], str | None]:
         """Search for issues using JQL.
 
         Args:
             jql: JQL query string.
             fields: Fields to retrieve.
             max_results: Maximum results to return.
-            start_at: Pagination offset.
+            next_page_token: Token for pagination (from previous response).
 
         Returns:
-            List of matching issues.
+            Tuple of (list of matching issues, next page token or None).
 
         Raises:
             JiraAPIError: On API error.
         """
+        # Default fields needed for parsing - always include these
+        default_fields = ["summary", "status", "issuetype", "labels", "parent", "description"]
+        request_fields = fields if fields else default_fields
+
         payload: dict[str, Any] = {
             "jql": jql,
             "maxResults": max_results,
-            "startAt": start_at,
+            "fields": request_fields,
         }
-        if fields:
-            payload["fields"] = fields
+        if next_page_token:
+            payload["nextPageToken"] = next_page_token
 
-        response = self._request("POST", "/search", json=payload)
+        response = self._request("POST", "/search/jql", json=payload)
         data = self._handle_response(response)
         issues = data.get("issues", [])  # type: ignore
-        return [JiraIssue.from_api_response(issue) for issue in issues]
+        next_token = data.get("nextPageToken")  # type: ignore
+        return [JiraIssue.from_api_response(issue) for issue in issues], next_token
 
     def get_transitions(self, key: str) -> list[dict]:
         """Get available transitions for an issue.
