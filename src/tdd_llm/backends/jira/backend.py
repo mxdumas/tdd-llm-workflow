@@ -320,6 +320,160 @@ class JiraBackend:
         self.client.add_comment(task_id, comment)
         return True
 
+    def _text_to_adf(self, text: str) -> dict:
+        """Convert plain text to Atlassian Document Format (ADF).
+
+        Args:
+            text: Plain text content (may contain newlines).
+
+        Returns:
+            ADF document structure.
+        """
+        # Split into paragraphs
+        paragraphs = text.split("\n\n")
+        content = []
+
+        for para in paragraphs:
+            if not para.strip():
+                continue
+
+            # Handle single newlines as hard breaks within paragraph
+            lines = para.split("\n")
+            para_content = []
+
+            for i, line in enumerate(lines):
+                if line.strip():
+                    para_content.append({"type": "text", "text": line})
+                if i < len(lines) - 1:
+                    para_content.append({"type": "hardBreak"})
+
+            if para_content:
+                content.append(
+                    {
+                        "type": "paragraph",
+                        "content": para_content,
+                    }
+                )
+
+        if not content:
+            content = [{"type": "paragraph", "content": [{"type": "text", "text": " "}]}]
+
+        return {
+            "type": "doc",
+            "version": 1,
+            "content": content,
+        }
+
+    def create_epic(
+        self,
+        name: str,
+        description: str,
+        epic_id: str | None = None,
+    ) -> Epic:
+        """Create a new epic in Jira.
+
+        Args:
+            name: Epic name/title.
+            description: Epic description.
+            epic_id: Ignored for Jira (key assigned by Jira).
+
+        Returns:
+            Created Epic instance.
+        """
+        project = self.config.effective_project_key
+        epic_type = self.config.epic_issue_type
+
+        payload = {
+            "fields": {
+                "project": {"key": project},
+                "summary": name,
+                "description": self._text_to_adf(description),
+                "issuetype": {"name": epic_type},
+            }
+        }
+
+        result = self.client.create_issue(payload)
+        key = result["key"]
+
+        logger.info("Created epic %s: %s", key, name)
+
+        return Epic(
+            id=key,
+            name=name,
+            description=description,
+            status="not_started",
+            tasks=[],
+        )
+
+    def create_task(
+        self,
+        epic_id: str,
+        title: str,
+        description: str,
+        acceptance_criteria: str | None = None,
+        task_id: str | None = None,
+    ) -> Task:
+        """Create a new task/story in Jira under an epic.
+
+        Args:
+            epic_id: Parent epic key (e.g., 'PROJ-100').
+            title: Task title/summary.
+            description: Full task description.
+            acceptance_criteria: Optional acceptance criteria.
+            task_id: Ignored for Jira (key assigned by Jira).
+
+        Returns:
+            Created Task instance.
+
+        Raises:
+            KeyError: If epic not found.
+        """
+        # Verify epic exists
+        try:
+            self.client.get_issue(epic_id)
+        except JiraNotFoundError as e:
+            raise KeyError(f"Epic not found: {epic_id}") from e
+
+        project = self.config.effective_project_key
+        # Use first task issue type (usually "Story")
+        task_type = self.config.task_issue_types[0] if self.config.task_issue_types else "Story"
+
+        # Build description with acceptance criteria if provided
+        full_description = description
+        if acceptance_criteria:
+            full_description += f"\n\n**Acceptance Criteria:**\n{acceptance_criteria}"
+
+        payload: dict = {
+            "fields": {
+                "project": {"key": project},
+                "summary": title,
+                "description": self._text_to_adf(full_description),
+                "issuetype": {"name": task_type},
+                "parent": {"key": epic_id},
+            }
+        }
+
+        # Add acceptance criteria to custom field if configured
+        if acceptance_criteria and self.config.fields.acceptance_criteria:
+            payload["fields"][self.config.fields.acceptance_criteria] = self._text_to_adf(
+                acceptance_criteria
+            )
+
+        result = self.client.create_issue(payload)
+        key = result["key"]
+
+        logger.info("Created task %s under %s: %s", key, epic_id, title)
+
+        return Task(
+            id=key,
+            epic_id=epic_id,
+            title=title,
+            description=description,
+            status="not_started",
+            acceptance_criteria=acceptance_criteria,
+            phase=None,
+        )
+
 
 # Ensure JiraBackend implements Backend protocol
 def _check_protocol() -> None:

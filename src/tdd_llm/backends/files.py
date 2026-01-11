@@ -433,6 +433,160 @@ class FilesBackend:
         """
         return False
 
+    def _get_next_epic_id(self, state: dict) -> str:
+        """Get the next available epic ID."""
+        existing_ids = list(state.get("epics", {}).keys())
+        if not existing_ids:
+            return "E1"
+
+        # Find highest number
+        max_num = 0
+        for epic_id in existing_ids:
+            if epic_id.startswith("E") and epic_id[1:].isdigit():
+                max_num = max(max_num, int(epic_id[1:]))
+        return f"E{max_num + 1}"
+
+    def _get_next_task_id(self, epic_id: str) -> str:
+        """Get the next available task ID for an epic."""
+        try:
+            _, _, tasks = self._parse_epic_file(epic_id)
+            if not tasks:
+                return "T1"
+
+            # Find highest number
+            max_num = 0
+            for task in tasks:
+                task_id = task["id"]
+                if task_id.startswith("T") and task_id[1:].isdigit():
+                    max_num = max(max_num, int(task_id[1:]))
+            return f"T{max_num + 1}"
+        except KeyError:
+            return "T1"
+
+    def _slugify(self, text: str) -> str:
+        """Convert text to a URL-friendly slug."""
+        # Convert to lowercase and replace spaces/special chars with hyphens
+        slug = text.lower()
+        slug = re.sub(r"[^a-z0-9]+", "-", slug)
+        slug = slug.strip("-")
+        return slug[:50]  # Limit length
+
+    def create_epic(
+        self,
+        name: str,
+        description: str,
+        epic_id: str | None = None,
+    ) -> Epic:
+        """Create a new epic."""
+        state = self._load_state()
+
+        # Generate or validate epic ID
+        if epic_id is None:
+            epic_id = self._get_next_epic_id(state)
+        else:
+            # Ensure ID format before checking for existence
+            if not epic_id.startswith("E"):
+                epic_id = f"E{epic_id}"
+            if epic_id in state.get("epics", {}):
+                raise ValueError(f"Epic {epic_id} already exists")
+
+        # Create epic file
+        self.epics_dir.mkdir(parents=True, exist_ok=True)
+        slug = self._slugify(name)
+        file_name = f"{epic_id.lower()}-{slug}.md"
+        file_path = self.epics_dir / file_name
+
+        # Write epic markdown
+        content = f"""# {epic_id}: {name}
+
+{description}
+
+## Completion Criteria
+
+- All tasks completed and verified
+- Documentation updated
+- Code reviewed and merged
+"""
+        file_path.write_text(content, encoding="utf-8")
+
+        # Update state.json
+        if "epics" not in state:
+            state["epics"] = {}
+        state["epics"][epic_id] = {
+            "status": "not_started",
+            "completed": [],
+        }
+        self._save_state(state)
+
+        return Epic(
+            id=epic_id,
+            name=name,
+            description=description,
+            status="not_started",
+            tasks=[],
+        )
+
+    def create_task(
+        self,
+        epic_id: str,
+        title: str,
+        description: str,
+        acceptance_criteria: str | None = None,
+        task_id: str | None = None,
+    ) -> Task:
+        """Create a new task/story in an epic."""
+        # Normalize epic ID
+        if not epic_id.startswith("E"):
+            epic_id = f"E{epic_id}"
+
+        # Find epic file
+        file_path = self._find_epic_file(epic_id)
+        if not file_path:
+            raise KeyError(f"Epic file not found for {epic_id}")
+
+        # Generate or validate task ID
+        if task_id is None:
+            task_id = self._get_next_task_id(epic_id)
+        else:
+            # Ensure ID format before checking for existence
+            if not task_id.startswith("T"):
+                task_id = f"T{task_id}"
+
+            # Check if task already exists
+            _, _, existing_tasks = self._parse_epic_file(epic_id)
+            for t in existing_tasks:
+                if t["id"] == task_id:
+                    raise ValueError(f"Task {task_id} already exists in {epic_id}")
+
+        # Read existing content
+        content = file_path.read_text(encoding="utf-8")
+
+        # Build task section
+        task_section = f"\n\n## {task_id}: {title}\n\n{description}"
+        if acceptance_criteria:
+            task_section += f"\n\n**Acceptance Criteria:**\n{acceptance_criteria}"
+
+        # Insert before "## Completion" if it exists, otherwise append
+        completion_match = re.search(r"\n## Completion", content, re.IGNORECASE)
+        if completion_match:
+            insert_pos = completion_match.start()
+            content = content[:insert_pos] + task_section + content[insert_pos:]
+        else:
+            content = content.rstrip() + task_section + "\n"
+
+        # Write updated content
+        file_path.write_text(content, encoding="utf-8")
+
+        return Task(
+            id=task_id,
+            epic_id=epic_id,
+            title=title,
+            description=description,
+            status="not_started",
+            acceptance_criteria=acceptance_criteria,
+            phase=None,
+        )
+
 
 # Ensure FilesBackend implements Backend protocol
 def _check_protocol() -> None:

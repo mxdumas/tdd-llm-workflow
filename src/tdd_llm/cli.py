@@ -1,5 +1,6 @@
 """CLI interface for tdd-llm."""
 
+import functools
 from typing import Annotated
 
 import click
@@ -1005,6 +1006,121 @@ def backend_add_comment(
     except Exception as e:
         rprint(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+
+def handle_cli_errors(func):
+    """Decorator to handle common CLI errors for backend commands."""
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except (KeyError, ValueError) as e:
+            rprint(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
+        except Exception as e:
+            rprint(f"[red]Error:[/red] {e}")
+            raise typer.Exit(1)
+
+    return wrapper
+
+
+@backend_app.command(name="list-epics")
+@handle_cli_errors
+def backend_list_epics(
+    status: Annotated[
+        str | None,
+        typer.Option("--status", "-s", help="Filter by status"),
+    ] = None,
+):
+    """List all epics in the project.
+
+    Returns JSON array with epic details including progress.
+    """
+    backend = _get_backend()
+    epics = backend.list_epics(status=status)
+    print(_format_json(epics))
+
+
+@backend_app.command(name="list-stories")
+@handle_cli_errors
+def backend_list_stories(
+    epic_id: Annotated[str, typer.Argument(help="Epic ID to list stories from")],
+    status: Annotated[
+        str | None,
+        typer.Option("--status", "-s", help="Filter by status"),
+    ] = None,
+):
+    """List all stories/tasks in an epic.
+
+    Returns JSON array with task details.
+    """
+    backend = _get_backend()
+    epic = backend.get_epic(epic_id)
+    tasks = epic.tasks
+
+    # Filter by status if specified
+    if status:
+        tasks = [t for t in tasks if t.status == status]
+
+    print(_format_json(tasks))
+
+
+@backend_app.command(name="create-epic")
+@handle_cli_errors
+def backend_create_epic(
+    name: Annotated[str, typer.Argument(help="Epic name/title")],
+    description: Annotated[str, typer.Argument(help="Epic description")],
+    epic_id: Annotated[
+        str | None,
+        typer.Option("--id", "-i", help="Epic ID (auto-generated if not provided)"),
+    ] = None,
+):
+    """Create a new epic.
+
+    For files backend, creates a markdown file in docs/epics/ and updates state.json.
+    For Jira backend, creates an Epic issue in the configured project.
+
+    Returns JSON with the created epic details.
+    """
+    backend = _get_backend()
+    epic = backend.create_epic(name=name, description=description, epic_id=epic_id)
+    print(_format_json(epic))
+    rprint(f"\n[green]Created epic {epic.id}[/green]")
+
+
+@backend_app.command(name="create-story")
+@handle_cli_errors
+def backend_create_story(
+    epic_id: Annotated[str, typer.Argument(help="Parent epic ID")],
+    title: Annotated[str, typer.Argument(help="Story/task title")],
+    description: Annotated[str, typer.Argument(help="Story/task description")],
+    acceptance_criteria: Annotated[
+        str | None,
+        typer.Option("--ac", "-a", help="Acceptance criteria"),
+    ] = None,
+    task_id: Annotated[
+        str | None,
+        typer.Option("--id", "-i", help="Task ID (auto-generated if not provided)"),
+    ] = None,
+):
+    """Create a new story/task in an epic.
+
+    For files backend, adds a task section to the epic's markdown file.
+    For Jira backend, creates a Story issue linked to the epic.
+
+    Returns JSON with the created task details.
+    """
+    backend = _get_backend()
+    task = backend.create_task(
+        epic_id=epic_id,
+        title=title,
+        description=description,
+        acceptance_criteria=acceptance_criteria,
+        task_id=task_id,
+    )
+    print(_format_json(task))
+    rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
 
 
 app.add_typer(backend_app)

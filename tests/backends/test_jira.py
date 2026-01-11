@@ -5,16 +5,13 @@ from unittest import mock
 
 import pytest
 
-from tdd_llm.config import JiraConfig, JiraFieldMappings
+from tdd_llm.backends.jira.backend import JiraBackend
 from tdd_llm.backends.jira.client import (
     JiraClient,
     JiraIssue,
-    JiraAPIError,
-    JiraAuthError,
     JiraNotFoundError,
 )
-from tdd_llm.backends.jira.backend import JiraBackend
-
+from tdd_llm.config import JiraConfig
 
 # Sample Jira API responses
 SAMPLE_EPIC_RESPONSE = {
@@ -362,3 +359,89 @@ class TestJiraBackend:
         backend.add_comment("PROJ-1234", "Test comment")
 
         client.add_comment.assert_called_once_with("PROJ-1234", "Test comment")
+
+    def test_create_epic(self, mock_client):
+        """Test creating an epic."""
+        backend, client = mock_client
+
+        # Mock create_issue response
+        client.create_issue.return_value = {"key": "PROJ-200", "id": "12345"}
+
+        epic = backend.create_epic(
+            name="New Epic",
+            description="Epic description here.",
+        )
+
+        # Verify the epic was created correctly
+        assert epic.id == "PROJ-200"
+        assert epic.name == "New Epic"
+        assert epic.description == "Epic description here."
+        assert epic.status == "not_started"
+        assert len(epic.tasks) == 0
+
+        # Verify create_issue was called with correct payload
+        client.create_issue.assert_called_once()
+        call_args = client.create_issue.call_args[0][0]
+        assert call_args["fields"]["summary"] == "New Epic"
+        assert call_args["fields"]["issuetype"]["name"] == "Epic"
+
+    def test_create_task(self, mock_client):
+        """Test creating a task under an epic."""
+        backend, client = mock_client
+
+        # Mock get_issue for epic verification
+        client.get_issue.return_value = JiraIssue.from_api_response(SAMPLE_EPIC_RESPONSE)
+        # Mock create_issue response
+        client.create_issue.return_value = {"key": "PROJ-1500", "id": "67890"}
+
+        task = backend.create_task(
+            epic_id="PROJ-100",
+            title="New Story",
+            description="Story description here.",
+            acceptance_criteria="- [ ] Test passes",
+        )
+
+        # Verify the task was created correctly
+        assert task.id == "PROJ-1500"
+        assert task.epic_id == "PROJ-100"
+        assert task.title == "New Story"
+        assert task.description == "Story description here."
+        assert task.acceptance_criteria == "- [ ] Test passes"
+        assert task.status == "not_started"
+
+        # Verify create_issue was called with correct payload
+        client.create_issue.assert_called_once()
+        call_args = client.create_issue.call_args[0][0]
+        assert call_args["fields"]["summary"] == "New Story"
+        assert call_args["fields"]["parent"]["key"] == "PROJ-100"
+        assert call_args["fields"]["issuetype"]["name"] == "Story"
+
+    def test_create_task_epic_not_found(self, mock_client):
+        """Test creating a task when epic doesn't exist."""
+        backend, client = mock_client
+
+        client.get_issue.side_effect = JiraNotFoundError("Not found")
+
+        with pytest.raises(KeyError) as exc_info:
+            backend.create_task(
+                epic_id="PROJ-9999",
+                title="Should Fail",
+                description="This should fail.",
+            )
+        assert "Epic not found" in str(exc_info.value)
+
+    def test_text_to_adf(self, mock_client):
+        """Test converting text to Atlassian Document Format."""
+        backend, _ = mock_client
+
+        # Test simple text
+        adf = backend._text_to_adf("Hello world")
+        assert adf["type"] == "doc"
+        assert adf["version"] == 1
+        assert len(adf["content"]) == 1
+        assert adf["content"][0]["type"] == "paragraph"
+        assert adf["content"][0]["content"][0]["text"] == "Hello world"
+
+        # Test multiline text
+        adf = backend._text_to_adf("First paragraph.\n\nSecond paragraph.")
+        assert len(adf["content"]) == 2

@@ -186,3 +186,54 @@ class Backend(Protocol):
             True if comment was added, False if not supported.
         """
         ...
+
+    def create_epic(
+        self,
+        name: str,
+        description: str,
+        epic_id: str | None = None,
+    ) -> Epic:
+        """Create a new epic.
+
+        Args:
+            name: Epic name/title.
+            description: Epic description with objectives and context.
+            epic_id: Optional epic ID (auto-generated if not provided).
+                For files backend: E1, E2, etc.
+                For Jira: ignored (key assigned by Jira).
+
+        Returns:
+            Created Epic instance.
+
+        Raises:
+            ValueError: If epic already exists or invalid data.
+        """
+        ...
+
+    def create_task(
+        self,
+        epic_id: str,
+        title: str,
+        description: str,
+        acceptance_criteria: str | None = None,
+        task_id: str | None = None,
+    ) -> Task:
+        """Create a new task/story in an epic.
+
+        Args:
+            epic_id: Parent epic ID.
+            title: Task title/summary.
+            description: Full task description.
+            acceptance_criteria: Optional acceptance criteria.
+            task_id: Optional task ID (auto-generated if not provided).
+                For files backend: T1, T2, etc.
+                For Jira: ignored (key assigned by Jira).
+
+        Returns:
+            Created Task instance.
+
+        Raises:
+            KeyError: If epic not found.
+            ValueError: If task already exists or invalid data.
+        """
+        ...
