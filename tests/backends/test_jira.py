@@ -234,10 +234,13 @@ class TestJiraBackend:
 
         # Mock responses
         client.get_issue.return_value = JiraIssue.from_api_response(SAMPLE_EPIC_RESPONSE)
-        client.search.return_value = [
-            JiraIssue.from_api_response(issue)
-            for issue in SAMPLE_SEARCH_RESPONSE["issues"]
-        ]
+        client.search.return_value = (
+            [
+                JiraIssue.from_api_response(issue)
+                for issue in SAMPLE_SEARCH_RESPONSE["issues"]
+            ],
+            None,  # next_page_token
+        )
 
         epic = backend.get_epic("PROJ-100")
 
@@ -274,9 +277,15 @@ class TestJiraBackend:
         # Mock epic search
         client.search.side_effect = [
             # First call: list epics
-            [JiraIssue.from_api_response(SAMPLE_EPIC_RESPONSE)],
+            ([JiraIssue.from_api_response(SAMPLE_EPIC_RESPONSE)], None),
             # Second call: tasks for epic
-            [JiraIssue.from_api_response(issue) for issue in SAMPLE_SEARCH_RESPONSE["issues"]],
+            (
+                [
+                    JiraIssue.from_api_response(issue)
+                    for issue in SAMPLE_SEARCH_RESPONSE["issues"]
+                ],
+                None,
+            ),
         ]
 
         epics = backend.list_epics()
@@ -290,10 +299,13 @@ class TestJiraBackend:
 
         # Mock responses
         client.get_issue.return_value = JiraIssue.from_api_response(SAMPLE_EPIC_RESPONSE)
-        client.search.return_value = [
-            JiraIssue.from_api_response(issue)
-            for issue in SAMPLE_SEARCH_RESPONSE["issues"]
-        ]
+        client.search.return_value = (
+            [
+                JiraIssue.from_api_response(issue)
+                for issue in SAMPLE_SEARCH_RESPONSE["issues"]
+            ],
+            None,
+        )
 
         next_task = backend.get_next_task("PROJ-100")
 
