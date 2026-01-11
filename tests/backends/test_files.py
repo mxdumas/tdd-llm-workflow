@@ -229,6 +229,130 @@ class TestFilesBackend:
         assert "T2" in state["epics"]["E1"]["completed"]
 
 
+class TestFilesBackendCreateEpic:
+    """Tests for FilesBackend.create_epic."""
+
+    def test_create_epic_auto_id(self, backend, project_dir):
+        """Test creating an epic with auto-generated ID."""
+        epic = backend.create_epic(
+            name="New Epic",
+            description="This is a new epic for testing.",
+        )
+
+        assert epic.id == "E3"  # E1 and E2 already exist
+        assert epic.name == "New Epic"
+        assert epic.description == "This is a new epic for testing."
+        assert epic.status == "not_started"
+        assert len(epic.tasks) == 0
+
+        # Verify file was created
+        epic_file = project_dir / "docs" / "epics" / "e3-new-epic.md"
+        assert epic_file.exists()
+        content = epic_file.read_text()
+        assert "# E3: New Epic" in content
+        assert "This is a new epic for testing." in content
+
+        # Verify state was updated
+        state_file = project_dir / "docs" / "state.json"
+        with open(state_file) as f:
+            state = json.load(f)
+        assert "E3" in state["epics"]
+        assert state["epics"]["E3"]["status"] == "not_started"
+
+    def test_create_epic_with_id(self, backend, project_dir):
+        """Test creating an epic with a specific ID."""
+        epic = backend.create_epic(
+            name="Custom ID Epic",
+            description="Epic with custom ID.",
+            epic_id="E10",
+        )
+
+        assert epic.id == "E10"
+        epic_file = project_dir / "docs" / "epics" / "e10-custom-id-epic.md"
+        assert epic_file.exists()
+
+    def test_create_epic_duplicate_id_fails(self, backend):
+        """Test that creating an epic with existing ID fails."""
+        with pytest.raises(ValueError) as exc_info:
+            backend.create_epic(
+                name="Duplicate",
+                description="Should fail.",
+                epic_id="E1",
+            )
+        assert "already exists" in str(exc_info.value)
+
+
+class TestFilesBackendCreateTask:
+    """Tests for FilesBackend.create_task."""
+
+    def test_create_task_auto_id(self, backend, project_dir):
+        """Test creating a task with auto-generated ID."""
+        task = backend.create_task(
+            epic_id="E1",
+            title="New Task",
+            description="This is a new task.",
+        )
+
+        assert task.id == "T3"  # T1 and T2 already exist in E1
+        assert task.epic_id == "E1"
+        assert task.title == "New Task"
+        assert task.description == "This is a new task."
+        assert task.status == "not_started"
+
+        # Verify file was updated
+        epic_file = project_dir / "docs" / "epics" / "e1-foundation.md"
+        content = epic_file.read_text()
+        assert "## T3: New Task" in content
+        assert "This is a new task." in content
+
+    def test_create_task_with_acceptance_criteria(self, backend, project_dir):
+        """Test creating a task with acceptance criteria."""
+        task = backend.create_task(
+            epic_id="E1",
+            title="Task with AC",
+            description="Task description.",
+            acceptance_criteria="- [ ] Test passes\n- [ ] Docs updated",
+        )
+
+        assert task.acceptance_criteria == "- [ ] Test passes\n- [ ] Docs updated"
+
+        # Verify AC in file
+        epic_file = project_dir / "docs" / "epics" / "e1-foundation.md"
+        content = epic_file.read_text()
+        assert "**Acceptance Criteria:**" in content
+        assert "Test passes" in content
+
+    def test_create_task_with_specific_id(self, backend, project_dir):
+        """Test creating a task with a specific ID."""
+        task = backend.create_task(
+            epic_id="E1",
+            title="Custom ID Task",
+            description="Task with custom ID.",
+            task_id="T10",
+        )
+
+        assert task.id == "T10"
+
+    def test_create_task_epic_not_found(self, backend):
+        """Test creating a task in non-existent epic fails."""
+        with pytest.raises(KeyError):
+            backend.create_task(
+                epic_id="E99",
+                title="Should Fail",
+                description="This should fail.",
+            )
+
+    def test_create_task_normalizes_epic_id(self, backend):
+        """Test that epic ID is normalized (E prefix added)."""
+        task = backend.create_task(
+            epic_id="1",  # Without E prefix
+            title="Normalized Epic",
+            description="Should work with normalized ID.",
+        )
+
+        assert task.epic_id == "E1"
+
+
 class TestFilesBackendNoState:
     """Tests for FilesBackend when state files don't exist."""
 
@@ -252,7 +376,7 @@ class TestFilesBackendNoState:
         backend = FilesBackend(project_root=project_dir)
 
         # Access state - should create local state
-        state = backend.get_state()
+        backend.get_state()
 
         assert local_state_file.exists()
         with open(local_state_file) as f:
