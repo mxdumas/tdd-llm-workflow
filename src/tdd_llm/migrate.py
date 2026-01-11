@@ -113,7 +113,7 @@ class FilesToJiraMigrator:
         return data.get("key")  # type: ignore
 
     def _update_epic_in_jira(
-        self, jira_key: str, epic_id: str, name: str, description: str
+        self, jira_key: str, epic_id: str, name: str, description: str, status: str
     ) -> bool:
         """Update an existing epic in Jira.
 
@@ -122,6 +122,7 @@ class FilesToJiraMigrator:
             epic_id: Local epic ID (E1, E2, etc.)
             name: Epic name.
             description: Epic description.
+            status: Epic status from state.json (completed, in_progress, not_started).
 
         Returns:
             True if updated successfully.
@@ -146,6 +147,12 @@ class FilesToJiraMigrator:
         }
 
         self.client.update_issue(jira_key, payload)
+
+        # Transition based on status using configured Jira status names
+        if status in ("completed", "in_progress"):
+            jira_status = self.jira_config.get_jira_status(status)
+            self.client.transition_to_status(jira_key, jira_status)
+
         return True
 
     def _create_task_in_jira(
@@ -206,9 +213,10 @@ class FilesToJiraMigrator:
         data = self.client.create_issue(payload)
         task_key = data.get("key")  # type: ignore
 
-        # Transition to Done if completed
+        # Transition to Done if completed using configured Jira status name
         if is_completed and task_key and not self.dry_run:
-            self.client.transition_to_status(task_key, "Done")
+            jira_status = self.jira_config.get_jira_status("completed")
+            self.client.transition_to_status(task_key, jira_status)
 
         return task_key
 
@@ -262,9 +270,10 @@ class FilesToJiraMigrator:
 
         self.client.update_issue(jira_key, payload)
 
-        # Transition to Done if completed
+        # Transition to Done if completed using configured Jira status name
         if is_completed:
-            self.client.transition_to_status(jira_key, "Done")
+            jira_status = self.jira_config.get_jira_status("completed")
+            self.client.transition_to_status(jira_key, jira_status)
 
         return True
 
@@ -309,6 +318,7 @@ class FilesToJiraMigrator:
                             epic_id=epic.id,
                             name=epic.name,
                             description=epic.description,
+                            status=epic.status,
                         )
                         result.epics_updated += 1
                         epic_key = existing_epic_key

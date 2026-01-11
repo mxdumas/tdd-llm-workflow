@@ -127,10 +127,10 @@ class FilesBackend:
         )
         description = desc_match.group(1).strip() if desc_match else ""
 
-        # Parse task sections: ## T{N}: {Title}
+        # Parse task sections: ## T{N}: {Title} or ### T{N}: {Title}
         tasks = []
         task_pattern = re.compile(
-            r"^##\s+(T\d+):\s*(.+?)$\n\n(.+?)(?=\n##\s+T\d+:|\n##\s+Completion|\Z)",
+            r"^#{2,3}\s+(T\d+):\s*(.+?)$\n\n(.+?)(?=\n#{2,3}\s+T\d+:|\n#{2,3}\s+Completion|\n#{2,3}\s+Estimation|\Z)",
             re.MULTILINE | re.DOTALL,
         )
 
