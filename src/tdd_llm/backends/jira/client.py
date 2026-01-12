@@ -58,20 +58,24 @@ def markdown_to_adf(text: str) -> dict:
         # Heading ## or ###
         if line.startswith("###"):
             heading_text = line[3:].strip()
-            content.append({
-                "type": "heading",
-                "attrs": {"level": 3},
-                "content": _parse_inline(heading_text),
-            })
+            content.append(
+                {
+                    "type": "heading",
+                    "attrs": {"level": 3},
+                    "content": _parse_inline(heading_text),
+                }
+            )
             i += 1
 
         elif line.startswith("##"):
             heading_text = line[2:].strip()
-            content.append({
-                "type": "heading",
-                "attrs": {"level": 2},
-                "content": _parse_inline(heading_text),
-            })
+            content.append(
+                {
+                    "type": "heading",
+                    "attrs": {"level": 2},
+                    "content": _parse_inline(heading_text),
+                }
+            )
             i += 1
 
         # Bullet list
@@ -79,13 +83,17 @@ def markdown_to_adf(text: str) -> dict:
             list_items: list[dict] = []
             while i < len(lines) and lines[i].startswith("- "):
                 item_text = lines[i][2:]
-                list_items.append({
-                    "type": "listItem",
-                    "content": [{
-                        "type": "paragraph",
-                        "content": _parse_inline(item_text),
-                    }],
-                })
+                list_items.append(
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": _parse_inline(item_text),
+                            }
+                        ],
+                    }
+                )
                 i += 1
             content.append({"type": "bulletList", "content": list_items})
 
@@ -101,10 +109,12 @@ def markdown_to_adf(text: str) -> dict:
                 i += 1
             if para_lines:
                 para_text = " ".join(para_lines)
-                content.append({
-                    "type": "paragraph",
-                    "content": _parse_inline(para_text),
-                })
+                content.append(
+                    {
+                        "type": "paragraph",
+                        "content": _parse_inline(para_text),
+                    }
+                )
 
     return {"type": "doc", "version": 1, "content": content}
 
@@ -127,16 +137,18 @@ def _parse_inline(text: str) -> list[dict]:
     for match in re.finditer(pattern, text):
         # Text before the bold
         if match.start() > last_end:
-            plain = text[last_end:match.start()]
+            plain = text[last_end : match.start()]
             if plain:
                 nodes.append({"type": "text", "text": plain})
 
         # Bold text
-        nodes.append({
-            "type": "text",
-            "text": match.group(1),
-            "marks": [{"type": "strong"}],
-        })
+        nodes.append(
+            {
+                "type": "text",
+                "text": match.group(1),
+                "marks": [{"type": "strong"}],
+            }
+        )
         last_end = match.end()
 
     # Remaining text after last match
