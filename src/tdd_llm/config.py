@@ -72,7 +72,11 @@ class JiraConfig:
     """Custom field mappings."""
 
     status_map: dict[str, str] = field(default_factory=dict)
-    """Map Jira status names to TDD status ('not_started', 'in_progress', 'completed')."""
+    """Map Jira status names to TDD status ('not_started', 'in_progress', 'completed').
+
+    Example for French Jira:
+        status_map = {"À faire": "not_started", "En cours": "in_progress", "Terminé": "completed"}
+    """
 
     oauth_client_id: str = ""
     """OAuth 2.0 client ID from Atlassian Developer Console."""

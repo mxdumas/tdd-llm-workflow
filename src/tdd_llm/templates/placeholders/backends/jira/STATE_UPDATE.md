@@ -5,10 +5,9 @@ Mark task as complete:
 tdd-llm backend update-status {task_id} completed
 ```
 
-Or use Jira status names directly:
-```bash
-tdd-llm backend update-status {task_id} Done
-```
+Valid TDD statuses: `not_started`, `in_progress`, `completed`
+
+The CLI maps TDD status to your Jira workflow status names via `status_map` in `tdd-llm.toml`.
 
 Set TDD phase (adds label like `tdd:test`):
 ```bash
