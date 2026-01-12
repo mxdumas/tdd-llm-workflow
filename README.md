@@ -198,11 +198,16 @@ jira:
   fields:
     acceptance_criteria: "customfield_10001"
 
-  # Optional: status mapping
+  # Optional: status mapping (adapt to your Jira language/workflow)
   status_map:
     "To Do": "not_started"
     "In Progress": "in_progress"
     "Done": "completed"
+  # French example:
+  # status_map:
+  #   "À faire": "not_started"
+  #   "En cours": "in_progress"
+  #   "Terminé": "completed"
 ```
 
 Environment variables (override config):

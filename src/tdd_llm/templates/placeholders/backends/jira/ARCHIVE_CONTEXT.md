@@ -1,14 +1,37 @@
 **Archive context: Jira**
 
-Archive the task context locally:
-```bash
-mkdir -p docs/tasks
-cp .tdd-context.md docs/tasks/{task_id}-context.md
+Add a completion summary to the Jira story. Extract from `.tdd-context.md`:
+
+**Summary format:**
+```
+## Task Completed
+
+### Objective
+{One sentence from Objective section}
+
+### Key Decisions
+{2-4 bullet points from Design/Logic sections - architectural choices, patterns used, tradeoffs made}
+
+### Changes
+**Created:** {list of new files}
+**Modified:** {list of modified files}
+
+### Quality
+- Coverage: {final %} ({delta from baseline})
+- Tests: {count} passed
+
+### Pull Request
+{PR link from context or "Merged via PR #N"}
 ```
 
-Optionally, add a completion summary as a Jira comment:
+Add the summary as a Jira comment:
 ```bash
-tdd-llm backend add-comment {task_id} "Task completed. Context archived to docs/tasks/{task_id}-context.md"
+tdd-llm backend add-comment {task_id} "{formatted_summary}"
 ```
 
-The archived context preserves the technical design decisions made during the task.
+Then clean up the local context file:
+```bash
+rm .tdd-context.md
+```
+
+The summary keeps technical context with the story in Jira rather than creating documentation files in the repository.

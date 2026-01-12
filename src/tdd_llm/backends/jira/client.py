@@ -33,6 +33,137 @@ class JiraNotFoundError(JiraAPIError):
     pass
 
 
+def markdown_to_adf(text: str) -> dict:
+    """Convert basic markdown to Atlassian Document Format (ADF).
+
+    Supports:
+    - Headings: ## and ###
+    - Bold: **text**
+    - Bullet lists: - item
+    - Paragraphs
+
+    Args:
+        text: Markdown text to convert.
+
+    Returns:
+        ADF document dict.
+    """
+    content: list[dict] = []
+    lines = text.split("\n")
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+
+        # Heading ## or ###
+        if line.startswith("###"):
+            heading_text = line[3:].strip()
+            content.append(
+                {
+                    "type": "heading",
+                    "attrs": {"level": 3},
+                    "content": _parse_inline(heading_text),
+                }
+            )
+            i += 1
+
+        elif line.startswith("##"):
+            heading_text = line[2:].strip()
+            content.append(
+                {
+                    "type": "heading",
+                    "attrs": {"level": 2},
+                    "content": _parse_inline(heading_text),
+                }
+            )
+            i += 1
+
+        # Bullet list
+        elif line.startswith("- "):
+            list_items: list[dict] = []
+            while i < len(lines) and lines[i].startswith("- "):
+                item_text = lines[i][2:]
+                list_items.append(
+                    {
+                        "type": "listItem",
+                        "content": [
+                            {
+                                "type": "paragraph",
+                                "content": _parse_inline(item_text),
+                            }
+                        ],
+                    }
+                )
+                i += 1
+            content.append({"type": "bulletList", "content": list_items})
+
+        # Empty line - skip
+        elif not line.strip():
+            i += 1
+
+        # Regular paragraph
+        else:
+            para_lines = []
+            while i < len(lines) and lines[i].strip() and not lines[i].startswith(("#", "- ")):
+                para_lines.append(lines[i])
+                i += 1
+            if para_lines:
+                para_text = " ".join(para_lines)
+                content.append(
+                    {
+                        "type": "paragraph",
+                        "content": _parse_inline(para_text),
+                    }
+                )
+
+    return {"type": "doc", "version": 1, "content": content}
+
+
+def _parse_inline(text: str) -> list[dict]:
+    """Parse inline markdown (bold) to ADF content nodes.
+
+    Args:
+        text: Text that may contain **bold** markers.
+
+    Returns:
+        List of ADF text nodes.
+    """
+    import re
+
+    nodes: list[dict] = []
+    pattern = r"\*\*(.+?)\*\*"
+    last_end = 0
+
+    for match in re.finditer(pattern, text):
+        # Text before the bold
+        if match.start() > last_end:
+            plain = text[last_end : match.start()]
+            if plain:
+                nodes.append({"type": "text", "text": plain})
+
+        # Bold text
+        nodes.append(
+            {
+                "type": "text",
+                "text": match.group(1),
+                "marks": [{"type": "strong"}],
+            }
+        )
+        last_end = match.end()
+
+    # Remaining text after last match
+    if last_end < len(text):
+        remaining = text[last_end:]
+        if remaining:
+            nodes.append({"type": "text", "text": remaining})
+
+    # If no matches, return the whole text as-is
+    if not nodes and text:
+        nodes.append({"type": "text", "text": text})
+
+    return nodes
+
+
 @dataclass
 class JiraIssue:
     """Parsed Jira issue."""
@@ -412,7 +543,7 @@ class JiraClient:
         )
         self._handle_response(response)
 
-    def transition_to_status(self, key: str, target_status: str) -> bool:
+    def transition_to_status(self, key: str, target_status: str) -> tuple[bool, list[str]]:
         """Transition an issue to a target status.
 
         Args:
@@ -420,7 +551,9 @@ class JiraClient:
             target_status: Target status name (e.g., 'Done').
 
         Returns:
-            True if transition was successful, False if no matching transition found.
+            Tuple of (success, available_statuses). On success, available_statuses
+            is empty. On failure, it contains the names of statuses that can be
+            transitioned to.
 
         Raises:
             JiraAPIError: On API error.
@@ -430,9 +563,11 @@ class JiraClient:
         for transition in transitions:
             if transition.get("to", {}).get("name", "").lower() == target_status.lower():
                 self.transition_issue(key, transition["id"])
-                return True
+                return True, []
 
-        return False
+        # Failed - return available transition targets
+        available = [t.get("to", {}).get("name", "?") for t in transitions]
+        return False, available
 
     def update_labels(
         self, key: str, add: list[str] | None = None, remove: list[str] | None = None
@@ -466,24 +601,16 @@ class JiraClient:
     def add_comment(self, key: str, body: str) -> None:
         """Add a comment to an issue.
 
+        Supports basic markdown formatting (headings, bold, bullet lists).
+
         Args:
             key: Issue key.
-            body: Comment text.
+            body: Comment text (supports markdown).
 
         Raises:
             JiraAPIError: On API error.
         """
-        # Use ADF format for the comment
-        adf_body = {
-            "type": "doc",
-            "version": 1,
-            "content": [
-                {
-                    "type": "paragraph",
-                    "content": [{"type": "text", "text": body}],
-                }
-            ],
-        }
+        adf_body = markdown_to_adf(body)
 
         response = self._request(
             "POST",
