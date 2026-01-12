@@ -142,11 +142,10 @@ class JiraConfig:
                 return self.status_map[jira_status]
             # Try case-insensitive match
             jira_lower = jira_status.lower()
-            for key, value in self.status_map.items():
-                if key.lower() == jira_lower:
-                    return value
-            # Status not in map - return not_started as fallback
-            return "not_started"
+            return next(
+                (value for key, value in self.status_map.items() if key.lower() == jira_lower),
+                "not_started",
+            )
 
         # Default mapping
         jira_lower = jira_status.lower()

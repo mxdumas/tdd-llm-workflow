@@ -327,12 +327,7 @@ class FilesBackend:
         Returns the first task that is not completed (i.e., not_started or in_progress).
         """
         epic = self.get_epic(epic_id)
-
-        for task in epic.tasks:
-            if task.status != "completed":
-                return task
-
-        return None
+        return next((task for task in epic.tasks if task.status != "completed"), None)
 
     def update_task_status(self, task_id: str, status: str) -> None:
         """Update a task's status."""
