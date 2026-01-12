@@ -48,8 +48,6 @@ def markdown_to_adf(text: str) -> dict:
     Returns:
         ADF document dict.
     """
-    import re
-
     content: list[dict] = []
     lines = text.split("\n")
     i = 0
