@@ -222,18 +222,15 @@ class JiraBackend:
         jira_status = self.config.get_jira_status(status)
 
         # Try to transition the issue
-        success = self.client.transition_to_status(task_id, jira_status)
+        success, available = self.client.transition_to_status(task_id, jira_status)
         if not success:
-            # Get available transitions to help debug
-            available = self.client.get_transitions(task_id)
-            available_names = [t.get("to", {}).get("name", "?") for t in available]
             logger.warning(
                 "Failed to transition issue %s to status '%s'. "
                 "Available transitions: %s. "
                 "Configure status_map in tdd-llm.toml to map your Jira statuses.",
                 task_id,
                 jira_status,
-                available_names,
+                available,
             )
 
         # Update local state if completing

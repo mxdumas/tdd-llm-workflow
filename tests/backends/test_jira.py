@@ -329,7 +329,7 @@ class TestJiraBackend:
         backend, client = mock_client
         backend.project_root = temp_dir
 
-        client.transition_to_status.return_value = True
+        client.transition_to_status.return_value = (True, [])
 
         backend.update_task_status("PROJ-1234", "completed")
 
@@ -445,3 +445,73 @@ class TestJiraBackend:
         # Test multiline text
         adf = backend._text_to_adf("First paragraph.\n\nSecond paragraph.")
         assert len(adf["content"]) == 2
+
+
+class TestMarkdownToAdf:
+    """Tests for markdown_to_adf function."""
+
+    def test_simple_paragraph(self):
+        """Test simple text becomes a paragraph."""
+        from tdd_llm.backends.jira.client import markdown_to_adf
+
+        adf = markdown_to_adf("Hello world")
+        assert adf["type"] == "doc"
+        assert adf["version"] == 1
+        assert len(adf["content"]) == 1
+        assert adf["content"][0]["type"] == "paragraph"
+        assert adf["content"][0]["content"][0]["text"] == "Hello world"
+
+    def test_headings(self):
+        """Test heading conversion."""
+        from tdd_llm.backends.jira.client import markdown_to_adf
+
+        adf = markdown_to_adf("## Heading 2\n### Heading 3")
+        assert len(adf["content"]) == 2
+        assert adf["content"][0]["type"] == "heading"
+        assert adf["content"][0]["attrs"]["level"] == 2
+        assert adf["content"][0]["content"][0]["text"] == "Heading 2"
+        assert adf["content"][1]["attrs"]["level"] == 3
+
+    def test_bold(self):
+        """Test bold text conversion."""
+        from tdd_llm.backends.jira.client import markdown_to_adf
+
+        adf = markdown_to_adf("This is **bold** text")
+        para = adf["content"][0]
+        assert para["content"][0]["text"] == "This is "
+        assert para["content"][1]["text"] == "bold"
+        assert para["content"][1]["marks"] == [{"type": "strong"}]
+        assert para["content"][2]["text"] == " text"
+
+    def test_bullet_list(self):
+        """Test bullet list conversion."""
+        from tdd_llm.backends.jira.client import markdown_to_adf
+
+        adf = markdown_to_adf("- Item 1\n- Item 2\n- Item 3")
+        assert len(adf["content"]) == 1
+        bullet_list = adf["content"][0]
+        assert bullet_list["type"] == "bulletList"
+        assert len(bullet_list["content"]) == 3
+        assert bullet_list["content"][0]["type"] == "listItem"
+
+    def test_mixed_content(self):
+        """Test mixed markdown content."""
+        from tdd_llm.backends.jira.client import markdown_to_adf
+
+        md = """## Task Completed
+
+### Objective
+Build a feature
+
+### Changes
+**Created:** file.py
+**Modified:** other.py
+
+- Coverage: 85%
+- Tests: 10 passed"""
+
+        adf = markdown_to_adf(md)
+        types = [node["type"] for node in adf["content"]]
+        assert "heading" in types
+        assert "paragraph" in types
+        assert "bulletList" in types
