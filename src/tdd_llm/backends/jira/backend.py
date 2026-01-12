@@ -207,11 +207,14 @@ class JiraBackend:
         return self._issue_to_task(issue)
 
     def get_next_task(self, epic_id: str) -> Task | None:
-        """Get the next incomplete task in an epic."""
+        """Get the next incomplete task in an epic.
+
+        Returns the first task that is not completed (i.e., not_started or in_progress).
+        """
         epic = self.get_epic(epic_id)
 
         for task in epic.tasks:
-            if task.status == "not_started":
+            if task.status != "completed":
                 return task
 
         return None

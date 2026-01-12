@@ -137,7 +137,16 @@ class JiraConfig:
             TDD status: 'not_started', 'in_progress', or 'completed'.
         """
         if self.status_map:
-            return self.status_map.get(jira_status, "not_started")
+            # Try exact match first
+            if jira_status in self.status_map:
+                return self.status_map[jira_status]
+            # Try case-insensitive match
+            jira_lower = jira_status.lower()
+            for key, value in self.status_map.items():
+                if key.lower() == jira_lower:
+                    return value
+            # Status not in map - return not_started as fallback
+            return "not_started"
 
         # Default mapping
         jira_lower = jira_status.lower()
