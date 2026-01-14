@@ -2,10 +2,7 @@
 
 import hashlib
 import json
-from pathlib import Path
 from unittest import mock
-
-import pytest
 
 from tdd_llm.updater import (
     Manifest,
@@ -138,9 +135,7 @@ class TestUpdateTemplates:
                 mock_response = mock.Mock()
                 mock_response.json.return_value = {"version": "1.0.0", "templates": {}}
                 mock_response.raise_for_status = mock.Mock()
-                mock_client.return_value.__enter__.return_value.get.return_value = (
-                    mock_response
-                )
+                mock_client.return_value.__enter__.return_value.get.return_value = mock_response
 
                 result = update_templates()
 
@@ -159,9 +154,7 @@ class TestUpdateTemplates:
                 mock_response = mock.Mock()
                 mock_response.json.return_value = {"version": "1.0.0", "templates": {}}
                 mock_response.raise_for_status = mock.Mock()
-                mock_client.return_value.__enter__.return_value.get.return_value = (
-                    mock_response
-                )
+                mock_client.return_value.__enter__.return_value.get.return_value = mock_response
 
                 result = update_templates(force=True)
 
@@ -173,12 +166,9 @@ class TestUpdateTemplates:
         test_content = b"# Test Template"
         test_checksum = hashlib.sha256(test_content).hexdigest()
 
-        manifest_data = {
-            "version": "1.1.0",
-            "templates": {"commands/test.md": test_checksum}
-        }
+        manifest_data = {"version": "1.1.0", "templates": {"commands/test.md": test_checksum}}
 
-        def mock_get(url):
+        def mock_get(url, **kwargs):
             mock_resp = mock.Mock()
             mock_resp.raise_for_status = mock.Mock()
             if "manifest.json" in url:
@@ -199,12 +189,9 @@ class TestUpdateTemplates:
 
     def test_checksum_mismatch(self, temp_dir):
         """Test handling of checksum mismatch."""
-        manifest_data = {
-            "version": "1.0.0",
-            "templates": {"commands/test.md": "expected_checksum"}
-        }
+        manifest_data = {"version": "1.0.0", "templates": {"commands/test.md": "expected_checksum"}}
 
-        def mock_get(url):
+        def mock_get(url, **kwargs):
             mock_resp = mock.Mock()
             mock_resp.raise_for_status = mock.Mock()
             if "manifest.json" in url:
@@ -227,12 +214,9 @@ class TestUpdateTemplates:
         test_content = b"# Test"
         test_checksum = hashlib.sha256(test_content).hexdigest()
 
-        manifest_data = {
-            "version": "1.0.0",
-            "templates": {"commands/test.md": test_checksum}
-        }
+        manifest_data = {"version": "1.0.0", "templates": {"commands/test.md": test_checksum}}
 
-        def mock_get(url):
+        def mock_get(url, **kwargs):
             mock_resp = mock.Mock()
             mock_resp.raise_for_status = mock.Mock()
             if "manifest.json" in url:
