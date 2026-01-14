@@ -1,6 +1,6 @@
 # /tdd:flow:5-review
 
-Code review and PR creation.
+Code review and quality validation.
 
 ## Instructions
 
@@ -9,28 +9,13 @@ Code review and PR creation.
 Read `.tdd-context.md` and `.tdd-epic-context.md`.
 Verify `.tdd-state.local.json`: `current.phase` must be "review".
 
-### 2. Verify scope completion
+Extract complexity (S/M/L) from `.tdd-context.md` header.
 
-Review the **Scope** section in `.tdd-context.md` and verify each item:
-- Check that every scope item has been implemented
-- For each item, identify the file(s) and test(s) that implement it
-
-Present a checklist:
-```
-## Scope Verification
-
-- [x] Item 1: implemented in `file.py`, tested in `test_file.py`
-- [x] Item 2: implemented in `other.py`, tested in `test_other.py`
-- [ ] Item 3: NOT IMPLEMENTED - missing XYZ
-```
-
-If any item is unchecked, **STOP**, inform the user, and return to `/tdd:flow:3-dev` to complete implementation.
-
-### 3. Build and tests
+### 2. Build and tests
 
 Run build and tests. Fix any failures before continuing.
 
-### 4. Verify coverage
+### 3. Verify coverage
 
 Run coverage (command from `docs/dev/standards.md`).
 
@@ -38,33 +23,124 @@ Run coverage (command from `docs/dev/standards.md`).
 
 If not met, add missing tests first.
 
-### 5. Commit and Push
+### 4. Code review
 
-Commit all changes: `{task_id}: {short description}`
+Review changes against `main` branch using `git diff main...HEAD`.
+
+#### 4.1 Gather context (Haiku agents in parallel)
+
+Launch 2 Haiku agents:
+
+**Agent A - CLAUDE.md files:**
+Find all relevant CLAUDE.md files:
+- Root CLAUDE.md (if exists)
+- CLAUDE.md in directories touched by the diff
+Return list of file paths and their key rules.
+
+**Agent B - Change summary:**
+View the diff and return:
+- Files modified/created/deleted
+- Nature of changes (new feature, bugfix, refactor, etc.)
+- Key code patterns used
+
+#### 4.2 Parallel review (depth based on complexity)
+
+Launch review agents based on task complexity:
+
+**Small (S) - 2 Sonnet agents:**
+1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+2. **Bug scan** - Shallow scan for obvious bugs in the diff
+
+**Medium (M) - 3 Sonnet agents:**
+1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+2. **Bug scan** - Shallow scan for obvious bugs in the diff
+3. **Task completion** - Read `.tdd-context.md` and verify ALL requirements in Scope/Tests/Design sections are implemented
+
+**Large (L) - 5 Sonnet agents:**
+1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+2. **Bug scan** - Shallow scan for obvious bugs in the diff
+3. **Task completion** - Read `.tdd-context.md` and verify ALL requirements in Scope/Tests/Design sections are implemented
+4. **Git history** - Read git blame/history of modified files for context-aware review
+5. **Code comments** - Check compliance with guidance in code comments of modified files
+
+Each agent returns issues with format:
+```
+- [SEVERITY] Description
+  File: path/to/file.py:L42
+  Reason: {CLAUDE.md rule | bug pattern | missing requirement | historical context | comment guidance}
+```
+
+#### 4.3 Severity levels
+
+- **critical**: Security vulnerability, data loss risk, breaking change, core functionality broken
+- **major**: Bug that will occur in practice, missing required feature, CLAUDE.md violation (explicit rule)
+- **minor**: Code style issue, potential edge case, minor optimization, non-explicit CLAUDE.md preference
+
+#### 4.4 False positives to ignore
+
+- Pre-existing issues (not introduced by this change)
+- Issues a linter/typechecker/compiler would catch
+- General quality issues unless required in CLAUDE.md
+- Issues silenced by lint ignore comments
+- Intentional functionality changes related to the task
+- Changes on lines not modified in the diff
+
+### 5. Process review results
+
+#### 5.1 Consolidate issues
+
+Merge duplicate issues from different agents. Present summary:
+
+```
+## Code Review Results
+
+### Critical (X)
+- [ ] Issue description - file:line
+
+### Major (X)
+- [ ] Issue description - file:line
+
+### Minor (X)
+- [ ] Issue description - file:line
+```
+
+#### 5.2 Handle critical/major issues
+
+For each critical or major issue:
+1. Attempt to fix automatically
+2. If fix is non-trivial or ambiguous, **ask user**:
+   - Explain the issue
+   - Propose fix OR explain why it might be a false positive
+   - Get confirmation before proceeding or skipping
+
+**All critical issues MUST be resolved before continuing.**
+**All major issues MUST be resolved OR explicitly approved by user to skip.**
+
+#### 5.3 Handle minor issues
+
+Fix minor issues that are quick to resolve (< 5 lines change).
+Skip others - mention them in final summary.
+
+### 6. Commit and Push
+
+Commit all changes (including review fixes): `{task_id}: {short description}`
 Push to origin on current branch.
 
-### 6. Create PR
+### 7. Create PR
 
 Create PR with `gh pr create`:
 - Title: `{task_id}: {task title}`
 - Summary: objective from `.tdd-context.md`
 - Changes: list of created/modified files
 - Test plan: build, tests, coverage status
-
-### 7. Code review (optional)
-
-If a code review plugin is available (e.g., `/code-review:code-review`), **ask user** if they want to run it:
-- **Yes**: For complex changes or those touching multiple modules
-- **No**: For small tasks or minor refactoring
-
-Fix any identified issues, amend commit, and force-push.
+- Review fixes applied (if any)
 
 ### 8. Update .tdd-context.md
 
 Add after `## Baseline`:
 - Final coverage (line %, delta from baseline)
 - PR number
-- Review issues fixed (if code review ran)
+- Review issues fixed (count by severity)
 
 ### 9. Finalize
 
@@ -76,6 +152,7 @@ Set `current.phase` = "done" in `.tdd-state.local.json`.
 **Build:** OK
 **Tests:** [N]/[N] passed
 **Coverage:** [X.X]% (baseline: [Y.Y]%)
+**Review:** [X] critical, [X] major, [X] minor fixed
 **PR:** #{N}
 
 Run `/tdd:flow:6-done` to finalize.
