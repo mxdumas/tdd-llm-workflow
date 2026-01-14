@@ -19,6 +19,8 @@ from .paths import get_templates_cache_dir
 GITHUB_RAW_BASE = "https://raw.githubusercontent.com/mxdumas/tdd-llm-workflow/main"
 TEMPLATES_PATH = "src/tdd_llm/templates"
 MANIFEST_URL = f"{GITHUB_RAW_BASE}/{TEMPLATES_PATH}/manifest.json"
+# Cache-busting headers to avoid stale CDN responses
+CACHE_BUSTING_HEADERS = {"Cache-Control": "no-cache", "Pragma": "no-cache"}
 
 
 @dataclass
@@ -67,7 +69,7 @@ def get_local_manifest() -> Manifest | None:
 
 def _fetch_remote_manifest(client: httpx.Client) -> Manifest:
     """Fetch manifest from GitHub."""
-    response = client.get(MANIFEST_URL)
+    response = client.get(MANIFEST_URL, headers=CACHE_BUSTING_HEADERS)
     response.raise_for_status()
     return Manifest.from_json(response.json())
 
@@ -75,7 +77,7 @@ def _fetch_remote_manifest(client: httpx.Client) -> Manifest:
 def _download_file(client: httpx.Client, relative_path: str, dest: Path) -> str:
     """Download a single file and return its checksum."""
     url = f"{GITHUB_RAW_BASE}/{TEMPLATES_PATH}/{relative_path}"
-    response = client.get(url)
+    response = client.get(url, headers=CACHE_BUSTING_HEADERS)
     response.raise_for_status()
 
     content = response.content
@@ -110,7 +112,9 @@ def update_templates(
     result = UpdateResult(status="error")
 
     try:
-        with httpx.Client(timeout=30.0, follow_redirects=True) as client:
+        # Use fresh transport to avoid stale CDN edge connections
+        transport = httpx.HTTPTransport(retries=2)
+        with httpx.Client(timeout=30.0, follow_redirects=True, transport=transport) as client:
             # Fetch remote manifest
             remote_manifest = _fetch_remote_manifest(client)
             result.version = remote_manifest.version
