@@ -52,8 +52,15 @@ find . -type d -name "doc*" -o -name "wiki" -o -name "help" 2>/dev/null | head -
 |------|-------------------|--------|
 | **User docs** (`docs/user/`, `help/`) | New feature, UI change, behavior change | Add/update usage guide |
 | **Dev docs** (`docs/dev/`, `docs/api/`) | API changes, new patterns | Update API docs |
+| **Architecture docs** (`docs/dev/architecture/`) | Architectural changes, new modules | Update relevant module doc or `architecture.md` |
 | **API specs** (`openapi.yaml`, `swagger.json`) | Endpoint changes | Update spec file |
 | **Project context** (`README.md`, `{{AGENT_FILE}}`) | Important patterns, setup changes | Update relevant sections |
+
+**Architecture documentation structure:**
+- If `docs/dev/architecture/` folder exists with modular docs, update the relevant module file
+- If only `docs/dev/architecture.md` exists, update that single file
+- For new architectural components, consider if a new module doc is warranted
+- **If creating a new module doc:** Add a reference to it in `docs/dev/architecture.md` (index/overview file)
 
 **For new features specifically:**
 1. Find the appropriate user doc file (or create one if needed)

@@ -115,7 +115,21 @@ For {name} architecture:
 
 ### 3. Generate architecture
 
-Create `docs/dev/architecture.md` adapted to project:
+**For most projects:** Create `docs/dev/architecture.md` as single file.
+
+**For large projects** (many modules, complex domains): Consider modular structure:
+```
+docs/dev/
+├── architecture.md           # Overview + index of modules
+└── architecture/
+    ├── module-a.md           # Domain-specific architecture
+    ├── module-b.md
+    └── ...
+```
+
+The main `architecture.md` serves as entry point with links to module docs.
+
+**Default template** for `docs/dev/architecture.md`:
 
 ```markdown
 # {Project} - Architecture
@@ -204,7 +218,7 @@ Enrich Architecture section of `{{AGENT_FILE}}` with:
 - {pattern 2}
 
 **Files created/updated:**
-- `docs/dev/architecture.md`
+- `docs/dev/architecture.md` (+ `docs/dev/architecture/` if modular)
 - `{{AGENT_FILE}}` (Architecture section enriched)
 
 **Next step:** `/tdd:init:3-standards`

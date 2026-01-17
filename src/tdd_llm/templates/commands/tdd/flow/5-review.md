@@ -31,11 +31,13 @@ Review changes against `main` branch using `git diff main...HEAD`.
 
 Launch 2 Haiku agents:
 
-**Agent A - CLAUDE.md files:**
-Find all relevant CLAUDE.md files:
+**Agent A - Project rules:**
+Find all relevant guidance files:
 - Root CLAUDE.md (if exists)
 - CLAUDE.md in directories touched by the diff
-Return list of file paths and their key rules.
+- `docs/dev/architecture.md` (overview)
+- If `docs/dev/architecture/` folder exists, load module docs relevant to changed files
+Return list of file paths and their key rules/patterns.
 
 **Agent B - Change summary:**
 View the diff and return:
@@ -48,16 +50,16 @@ View the diff and return:
 Launch review agents based on task complexity:
 
 **Small (S) - 2 Sonnet agents:**
-1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+1. **Project rules compliance** - Check changes against CLAUDE.md and architecture docs
 2. **Bug scan** - Shallow scan for obvious bugs in the diff
 
 **Medium (M) - 3 Sonnet agents:**
-1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+1. **Project rules compliance** - Check changes against CLAUDE.md and architecture docs
 2. **Bug scan** - Shallow scan for obvious bugs in the diff
 3. **Task completion** - Read `.tdd-context.md` and verify ALL requirements in Scope/Tests/Design sections are implemented
 
 **Large (L) - 5 Sonnet agents:**
-1. **CLAUDE.md compliance** - Check changes against CLAUDE.md rules
+1. **Project rules compliance** - Check changes against CLAUDE.md and architecture docs
 2. **Bug scan** - Shallow scan for obvious bugs in the diff
 3. **Task completion** - Read `.tdd-context.md` and verify ALL requirements in Scope/Tests/Design sections are implemented
 4. **Git history** - Read git blame/history of modified files for context-aware review
@@ -67,7 +69,7 @@ Each agent returns issues with format:
 ```
 - [SEVERITY] Description
   File: path/to/file.py:L42
-  Reason: {CLAUDE.md rule | bug pattern | missing requirement | historical context | comment guidance}
+  Reason: {CLAUDE.md rule | architecture violation | bug pattern | missing requirement | historical context | comment guidance}
 ```
 
 #### 4.3 Severity levels
