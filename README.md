@@ -116,6 +116,12 @@ tdd-llm update
 # Force re-download all templates
 tdd-llm update --force
 
+# Update and deploy in one command
+tdd-llm deploy --update
+
+# Force re-download and overwrite existing files
+tdd-llm deploy --update --force
+
 # Deploy using package templates (ignore cached updates)
 tdd-llm deploy --no-cache
 ```

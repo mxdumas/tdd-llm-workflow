@@ -1,13 +1,15 @@
 """CLI interface for tdd-llm."""
 
 import functools
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Annotated
 
 import click
 import typer
 from rich import print as rprint
 from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TaskID, TextColumn
 from rich.table import Table
 
 from . import __version__
@@ -22,7 +24,7 @@ from .config import (
     is_first_run,
 )
 from .deployer import deploy
-from .updater import get_local_manifest, update_templates
+from .updater import UpdateResult, get_local_manifest, update_templates
 
 app = typer.Typer(
     name="tdd-llm",
@@ -30,6 +32,72 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 console = Console()
+
+
+# ============================================================================
+# Helper functions for template updates
+# ============================================================================
+
+
+@contextmanager
+def _update_progress(quiet: bool) -> Iterator[Callable[[int, int, str], None]]:
+    """Context manager to handle the progress bar for template updates."""
+    if quiet:
+
+        def noop_callback(*args, **kwargs):
+            pass
+
+        yield noop_callback
+        return
+
+    progress: Progress | None = None
+    task_id: TaskID | None = None
+
+    def progress_callback(current: int, total: int, filename: str):
+        nonlocal progress, task_id
+        if progress is None:
+            progress = Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("{task.completed}/{task.total}"),
+            )
+            progress.start()
+            task_id = progress.add_task("Downloading", total=total)
+        if task_id is not None:
+            progress.update(task_id, completed=current)
+
+    try:
+        yield progress_callback
+    finally:
+        if progress:
+            progress.stop()
+
+
+def _display_update_result(result: UpdateResult) -> None:
+    """Display the result of an update operation and exit on error."""
+    if result.status == "up_to_date":
+        rprint(f"[green]Already up to date[/green] (version {result.version})")
+    elif result.status == "updated":
+        rprint("\n[green]Templates updated![/green]")
+        if result.previous_version:
+            rprint(f"  Version: {result.previous_version} -> {result.version}")
+        else:
+            rprint(f"  Version: {result.version}")
+        if result.files_updated:
+            rprint(f"  Files updated: {len(result.files_updated)}")
+        if result.files_unchanged:
+            rprint(f"  Files unchanged: {len(result.files_unchanged)}")
+    elif result.status == "error":
+        rprint("\n[red]Update failed[/red]")
+        for error in result.errors:
+            rprint(f"  [red]Error:[/red] {error}")
+        raise typer.Exit(1)
+
+
+# ============================================================================
+# Setup wizard
+# ============================================================================
 
 
 def run_setup_wizard() -> Config | None:
@@ -244,9 +312,37 @@ def _deploy_cmd(
         bool,
         typer.Option("--no-cache", help="Use package templates, ignore cached updates"),
     ] = False,
+    update: Annotated[
+        bool,
+        typer.Option(
+            "--update",
+            "-u",
+            help="Update templates from GitHub before deploying. Use with --force to re-download.",
+        ),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress update progress output (only with --update)"),
+    ] = False,
 ):
-    """Deploy TDD templates to .claude and .gemini directories."""
+    """Deploy TDD templates to .claude and .gemini directories.
+
+    Use --update --force to update templates from GitHub then deploy with overwrite.
+    """
     config = Config.load()
+
+    # If --update is specified, run update first
+    if update:
+        rprint("\n[bold]Step 1: Updating templates from GitHub...[/bold]\n")
+
+        with _update_progress(quiet) as progress_callback:
+            update_result = update_templates(force=force, progress_callback=progress_callback)
+
+        _display_update_result(update_result)
+
+        rprint("\n[bold]Step 2: Deploying TDD templates[/bold]")
+        # Force no_cache=False when using --update since we just updated the cache
+        no_cache = False
 
     # Use config defaults if not specified
     effective_lang = lang or config.default_language
@@ -625,53 +721,10 @@ def _update_cmd(
     if not quiet:
         rprint("\n[bold]Updating templates from GitHub...[/bold]\n")
 
-    progress: Progress | None = None
-    task_id = None
-
-    def progress_callback(current: int, total: int, filename: str):
-        nonlocal progress, task_id
-        if quiet:
-            return
-        if progress is None:
-            progress = Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                BarColumn(),
-                TextColumn("{task.completed}/{task.total}"),
-            )
-            progress.start()
-            task_id = progress.add_task("Downloading", total=total)
-        progress.update(task_id, completed=current)
-
-    try:
+    with _update_progress(quiet) as progress_callback:
         result = update_templates(force=force, progress_callback=progress_callback)
-    finally:
-        if progress:
-            progress.stop()
 
-    # Display results
-    if result.status == "up_to_date":
-        rprint(f"[green]Already up to date[/green] (version {result.version})")
-        raise typer.Exit(0)
-
-    if result.status == "updated":
-        rprint("\n[green]Updated successfully![/green]")
-        if result.previous_version:
-            rprint(f"  Version: {result.previous_version} -> {result.version}")
-        else:
-            rprint(f"  Version: {result.version}")
-
-        if result.files_updated:
-            rprint(f"  Files updated: {len(result.files_updated)}")
-        if result.files_unchanged:
-            rprint(f"  Files unchanged: {len(result.files_unchanged)}")
-        raise typer.Exit(0)
-
-    # Error case
-    rprint("\n[red]Update failed[/red]")
-    for error in result.errors:
-        rprint(f"  [red]Error:[/red] {error}")
-    raise typer.Exit(1)
+    _display_update_result(result)
 
 
 app.command(name="update")(_update_cmd)
