@@ -244,9 +244,69 @@ def _deploy_cmd(
         bool,
         typer.Option("--no-cache", help="Use package templates, ignore cached updates"),
     ] = False,
+    update: Annotated[
+        bool,
+        typer.Option("--update", "-u", help="Update templates before deploying (use with --force)"),
+    ] = False,
+    quiet: Annotated[
+        bool,
+        typer.Option("--quiet", "-q", help="Suppress update progress output (only with --update)"),
+    ] = False,
 ):
-    """Deploy TDD templates to .claude and .gemini directories."""
+    """Deploy TDD templates to .claude and .gemini directories.
+
+    Use --update --force to update templates from GitHub then deploy with overwrite.
+    """
     config = Config.load()
+
+    # If --update is specified, run update first
+    if update:
+        rprint("\n[bold]Step 1: Updating templates from GitHub...[/bold]\n")
+
+        progress: Progress | None = None
+        task_id = None
+
+        def progress_callback(current: int, total: int, filename: str):
+            nonlocal progress, task_id
+            if quiet:
+                return
+            if progress is None:
+                progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TextColumn("{task.completed}/{task.total}"),
+                )
+                progress.start()
+                task_id = progress.add_task("Downloading", total=total)
+            progress.update(task_id, completed=current)
+
+        try:
+            update_result = update_templates(force=force, progress_callback=progress_callback)
+        finally:
+            if progress:
+                progress.stop()
+
+        # Display update results
+        if update_result.status == "up_to_date":
+            rprint(f"[green]Already up to date[/green] (version {update_result.version})")
+        elif update_result.status == "updated":
+            rprint("\n[green]Templates updated![/green]")
+            if update_result.previous_version:
+                rprint(f"  Version: {update_result.previous_version} -> {update_result.version}")
+            else:
+                rprint(f"  Version: {update_result.version}")
+            if update_result.files_updated:
+                rprint(f"  Files updated: {len(update_result.files_updated)}")
+        elif update_result.status == "error":
+            rprint("\n[red]Update failed[/red]")
+            for error in update_result.errors:
+                rprint(f"  [red]Error:[/red] {error}")
+            raise typer.Exit(1)
+
+        rprint("\n[bold]Step 2: Deploying TDD templates[/bold]")
+        # Force no_cache=False when using --update since we just updated the cache
+        no_cache = False
 
     # Use config defaults if not specified
     effective_lang = lang or config.default_language
