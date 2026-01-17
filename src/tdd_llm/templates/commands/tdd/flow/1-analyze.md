@@ -94,10 +94,13 @@ Launch exploration agent:
 
 ```
 Code Scout for {task_id}. Report facts only, don't solve.
-1. Read docs/dev/architecture.md, docs/dev/standards.md
-2. Read task description from backend
-3. List impacted files (max 10 paths)
-4. Find similar patterns (max 3 paths)
+1. Read docs/dev/architecture.md (overview), docs/dev/standards.md
+2. If docs/dev/architecture/ folder exists, load relevant modular docs:
+   - List available files in docs/dev/architecture/
+   - Based on task domain (UI, CLI, persistence, etc.), load only relevant module(s)
+3. Read task description from backend
+4. List impacted files (max 10 paths)
+5. Find similar patterns (max 3 paths)
 ```
 
 ### 6. Deep analysis [L only]
