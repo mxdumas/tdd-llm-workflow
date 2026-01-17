@@ -2,15 +2,15 @@
   "templates": {
     "commands/tdd/create/epic.md": "9adf0a503337481dcbeccbec283e33a44217b8f2ce63af2ca478db8f7252810b",
     "commands/tdd/create/story.md": "ee579cb3ef52b2e9c1133bbefa44ddfafd63003a0bc865f5db92a4c945bb9975",
-    "commands/tdd/flow/1-analyze.md": "a7945c532f9c79821942f92e47f3277e20bdb1516ecf8839dca62592255ce129",
+    "commands/tdd/flow/1-analyze.md": "6c30d6f4f658deb3cd1f08ab26f9b539993c14d9fe9f190656e93808de4b68b3",
     "commands/tdd/flow/2-test.md": "a9e8a7babccb3cbff5e84c039e3952fff4aab1a14f38221fda1e07b06978407e",
     "commands/tdd/flow/3-dev.md": "1c68d787b47209f45fd647054b4cd4bcebbe6039a8f4dce61dfd80c6e3f31c2c",
-    "commands/tdd/flow/4-docs.md": "251478f72f6c3569369695cddfa13167069a42c03661aed288b986a775228fc5",
-    "commands/tdd/flow/5-review.md": "012aa2b45d8da827a5d05fb8adadc656bb07fa8b042da6cf70952113c5732d28",
+    "commands/tdd/flow/4-docs.md": "177a838fce08d15b8c8e71bf9909f0fceb0402d1f432aacbabe28aead6985cfe",
+    "commands/tdd/flow/5-review.md": "4d9f5e4a80aedf2558c53adad013a6510397979046b301532657b04c7177bb95",
     "commands/tdd/flow/6-done.md": "88c3bd88fe1f181b96d8bfc77d7552e86feea02b05807a7ed87f4816a40b9582",
     "commands/tdd/flow/status.md": "0981a5f4a2ad85740a20edc42a0bf13b9f4877bbf3f91a0f5e6d6f1f4080445c",
     "commands/tdd/init/1-project.md": "5f87ef986c783ff5f528511a2b970ffbdd8ce417fa6c32620d953e8bcdad0a1b",
-    "commands/tdd/init/2-architecture.md": "ae8f2b2e075a8d54ecf8b99531126f367fb2c60724611c07b13a951cf2e15559",
+    "commands/tdd/init/2-architecture.md": "8126a4b21543eb1638348caa61b9d33a23fdf4e7956522289bef17dbb56b4920",
     "commands/tdd/init/3-standards.md": "08e4ee8011030ddbff9682c26654bd67994d5a010c9bcc36fd165cb61e4879ca",
     "commands/tdd/init/4-readme.md": "d0e6d16d196126c11fff35192103dd5071265534a06093db2a458cba22b32362",
     "placeholders/backends/files/ARCHIVE_CONTEXT.md": "7aa3beec9e86ba6fde4f6252db8615b6d2db659b740777aef1b06dcabbc4802c",
@@ -59,5 +59,5 @@
     "placeholders/langs/typescript/RED_STRATEGY.md": "b2cfcf8c893f8362069ef07a2598b7e17c26e4236c595fb9ccae595f8e3656a3",
     "placeholders/langs/typescript/STANDARDS_QUESTIONS.md": "5060de289841885e8c78b83384df94d9bfc55d4f0ecccfc52bfa63ed65e39d0c"
   },
-  "version": "1.0.6"
+  "version": "1.0.7"
 }
