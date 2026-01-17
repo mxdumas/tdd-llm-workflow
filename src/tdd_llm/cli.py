@@ -1,8 +1,9 @@
 """CLI interface for tdd-llm."""
 
 import functools
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Annotated, Callable, Iterator
+from typing import Annotated
 
 import click
 import typer
