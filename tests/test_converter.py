@@ -1,8 +1,7 @@
 """Tests for converter module."""
 
-import pytest
 
-from tdd_llm.converter import md_to_toml, extract_description
+from tdd_llm.converter import extract_description, md_to_toml
 
 
 class TestExtractDescription:

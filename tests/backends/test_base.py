@@ -1,6 +1,5 @@
 """Tests for backend base types."""
 
-import pytest
 
 from tdd_llm.backends.base import Epic, Task, WorkflowState
 

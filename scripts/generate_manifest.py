@@ -66,7 +66,7 @@ def main():
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, sort_keys=True)
 
-    print(f"Generated manifest.json:")
+    print("Generated manifest.json:")
     print(f"  Version: {version}")
     print(f"  Files: {len(manifest['templates'])}")
     print(f"  Path: {manifest_path}")

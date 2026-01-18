@@ -1,23 +1,20 @@
 """Tests for paths module."""
 
 import os
-import sys
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 from tdd_llm.paths import (
+    get_backend_placeholders_dir,
+    get_base_templates_dir,
     get_config_dir,
-    get_user_claude_dir,
-    get_user_gemini_dir,
+    get_lang_placeholders_dir,
+    get_placeholders_dir,
     get_project_claude_dir,
     get_project_gemini_dir,
     get_templates_dir,
-    get_base_templates_dir,
-    get_placeholders_dir,
-    get_lang_placeholders_dir,
-    get_backend_placeholders_dir,
+    get_user_claude_dir,
+    get_user_gemini_dir,
 )
 
 
@@ -47,6 +44,7 @@ class TestGetConfigDir:
         """Test Linux uses XDG_CONFIG_HOME when set."""
         # Force reimport to pick up mocked platform
         import importlib
+
         from tdd_llm import paths
         importlib.reload(paths)
 
