@@ -1176,6 +1176,231 @@ def backend_create_story(
     rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
 
 
+# Alias: create-task -> create-story (LLMs often try this name)
+@backend_app.command(name="create-task")
+@handle_cli_errors
+def backend_create_task(
+    epic_id: Annotated[str, typer.Argument(help="Parent epic ID")],
+    title: Annotated[str, typer.Argument(help="Story/task title")],
+    description: Annotated[str, typer.Argument(help="Story/task description")],
+    acceptance_criteria: Annotated[
+        str | None,
+        typer.Option("--ac", "-a", help="Acceptance criteria"),
+    ] = None,
+    task_id: Annotated[
+        str | None,
+        typer.Option("--id", "-i", help="Task ID (auto-generated if not provided)"),
+    ] = None,
+):
+    """Create a new story/task in an epic (alias for create-story).
+
+    For files backend, adds a task section to the epic's markdown file.
+    For Jira backend, creates a Story issue linked to the epic.
+
+    Returns JSON with the created task details.
+    """
+    backend = _get_backend()
+    task = backend.create_task(
+        epic_id=epic_id,
+        title=title,
+        description=description,
+        acceptance_criteria=acceptance_criteria,
+        task_id=task_id,
+    )
+    print(_format_json(task))
+    rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
+
+
+@backend_app.command(name="update-story")
+@handle_cli_errors
+def backend_update_story(
+    task_id: Annotated[str, typer.Argument(help="Task/story ID to update")],
+    title: Annotated[
+        str | None,
+        typer.Option("--title", "-t", help="New title"),
+    ] = None,
+    description: Annotated[
+        str | None,
+        typer.Option("--description", "-d", help="New description"),
+    ] = None,
+    acceptance_criteria: Annotated[
+        str | None,
+        typer.Option("--ac", "-a", help="New acceptance criteria"),
+    ] = None,
+):
+    """Update a story/task's title, description, or acceptance criteria.
+
+    For Jira backend, updates the issue fields.
+    For files backend, updates the markdown file.
+
+    At least one of --title, --description, or --ac must be provided.
+    """
+    if not any([title, description, acceptance_criteria]):
+        rprint("[red]Error:[/red] At least one of --title, --description, or --ac must be provided")
+        raise typer.Exit(1)
+
+    from .backends.jira.backend import JiraBackend
+    from .backends.jira.client import markdown_to_adf
+
+    backend = _get_backend()
+
+    if isinstance(backend, JiraBackend):
+        # Build Jira update payload
+        fields: dict = {}
+        if title:
+            fields["summary"] = title
+        if description:
+            fields["description"] = markdown_to_adf(description)
+        if acceptance_criteria:
+            # Check if AC field is configured
+            ac_field = backend.config.jira.field_mappings.acceptance_criteria
+            if ac_field:
+                fields[ac_field] = markdown_to_adf(acceptance_criteria)
+            else:
+                rprint("[yellow]Warning:[/yellow] AC field not configured, skipping")
+
+        if fields:
+            backend.client.update_issue(task_id, {"fields": fields})
+            rprint(f"[green]Updated {task_id}[/green]")
+    else:
+        # Files backend - direct markdown edit
+        rprint("[yellow]For files backend, edit the epic markdown file directly:[/yellow]")
+        rprint("  1. Find: docs/epics/{epic_id}-*.md")
+        rprint(f"  2. Locate section: ## {task_id}: " + "{title}")
+        rprint("  3. Edit title/description/acceptance criteria")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="get-transitions")
+@handle_cli_errors
+def backend_get_transitions(
+    task_id: Annotated[str, typer.Argument(help="Task/story ID")],
+):
+    """Get available status transitions for a task.
+
+    Shows what statuses the task can be transitioned to.
+    Useful for understanding workflow constraints.
+
+    Returns JSON array of available transitions.
+    """
+    from .backends.jira.backend import JiraBackend
+
+    backend = _get_backend()
+
+    if isinstance(backend, JiraBackend):
+        transitions = backend.client.get_transitions(task_id)
+        # Simplify output for LLM consumption
+        result = [
+            {
+                "id": t["id"],
+                "name": t["name"],
+                "to_status": t.get("to", {}).get("name", "Unknown"),
+            }
+            for t in transitions
+        ]
+        print(_format_json(result))
+    else:
+        rprint("[yellow]Transitions not available for files backend[/yellow]")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="list-comments")
+@handle_cli_errors
+def backend_list_comments(
+    task_id: Annotated[str, typer.Argument(help="Task/story ID")],
+):
+    """List all comments on a task.
+
+    Returns JSON array of comments with author, body, and date.
+    """
+    from .backends.jira.backend import JiraBackend
+
+    backend = _get_backend()
+
+    if isinstance(backend, JiraBackend):
+        comments = backend.client.get_comments(task_id)
+        print(_format_json(comments))
+    else:
+        rprint("[yellow]Comments not available for files backend[/yellow]")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="update-labels")
+@handle_cli_errors
+def backend_update_labels(
+    task_id: Annotated[str, typer.Argument(help="Task/story ID")],
+    add: Annotated[
+        list[str] | None,
+        typer.Option("--add", "-a", help="Labels to add"),
+    ] = None,
+    remove: Annotated[
+        list[str] | None,
+        typer.Option("--remove", "-r", help="Labels to remove"),
+    ] = None,
+):
+    """Add or remove labels from a task.
+
+    Examples:
+        tdd-llm backend update-labels PROJ-123 --add bug --add urgent
+        tdd-llm backend update-labels PROJ-123 --remove wontfix
+    """
+    if not add and not remove:
+        rprint("[red]Error:[/red] At least one of --add or --remove must be provided")
+        raise typer.Exit(1)
+
+    from .backends.jira.backend import JiraBackend
+
+    backend = _get_backend()
+
+    if isinstance(backend, JiraBackend):
+        backend.client.update_labels(task_id, add=add, remove=remove)
+        rprint(f"[green]Updated labels on {task_id}[/green]")
+    else:
+        rprint("[yellow]Labels not available for files backend[/yellow]")
+        raise typer.Exit(1)
+
+
+@backend_app.command(name="search")
+@handle_cli_errors
+def backend_search(
+    jql: Annotated[str, typer.Argument(help="JQL query string")],
+    max_results: Annotated[
+        int,
+        typer.Option("--max", "-m", help="Maximum results to return"),
+    ] = 50,
+):
+    """Search for issues using JQL (Jira Query Language).
+
+    Examples:
+        tdd-llm backend search "project = PROJ AND status = 'In Progress'"
+        tdd-llm backend search "assignee = currentUser() AND sprint in openSprints()"
+        tdd-llm backend search "labels = bug AND created >= -7d" --max 10
+
+    Returns JSON array of matching issues.
+    """
+    from .backends.jira.backend import JiraBackend
+
+    backend = _get_backend()
+
+    if isinstance(backend, JiraBackend):
+        issues, _ = backend.client.search(jql, max_results=max_results)
+        # Convert to simple dict format
+        result = [
+            {
+                "key": issue.key,
+                "summary": issue.summary,
+                "status": issue.status,
+                "type": issue.issue_type,
+                "labels": issue.labels,
+            }
+            for issue in issues
+        ]
+        print(_format_json(result))
+    else:
+        rprint("[yellow]JQL search not available for files backend[/yellow]")
+        raise typer.Exit(1)
+
+
 app.add_typer(backend_app)
 
 

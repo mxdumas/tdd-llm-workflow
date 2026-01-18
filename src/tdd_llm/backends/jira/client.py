@@ -648,3 +648,39 @@ class JiraClient:
         """
         response = self._request("PUT", f"/issue/{key}", json=payload)
         self._handle_response(response)
+
+    def get_comments(self, key: str) -> list[dict]:
+        """Get all comments for an issue.
+
+        Args:
+            key: Issue key (e.g., 'PROJ-123').
+
+        Returns:
+            List of comments with author, body, and created date.
+
+        Raises:
+            JiraNotFoundError: If issue not found.
+            JiraAPIError: On API error.
+        """
+        response = self._request("GET", f"/issue/{key}/comment")
+        data = self._handle_response(response)
+        comments = data.get("comments", [])  # type: ignore
+
+        result = []
+        for comment in comments:
+            author = comment.get("author", {})
+            body = comment.get("body")
+            # Parse ADF body if needed
+            if isinstance(body, dict) and body.get("type") == "doc":
+                body_text = JiraIssue._extract_text_from_adf(body)
+            else:
+                body_text = str(body) if body else ""
+
+            result.append({
+                "id": comment.get("id"),
+                "author": author.get("displayName", author.get("emailAddress", "Unknown")),
+                "body": body_text,
+                "created": comment.get("created"),
+            })
+
+        return result
