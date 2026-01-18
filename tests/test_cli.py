@@ -1,15 +1,12 @@
 """Tests for CLI module."""
 
-import pytest
-from pathlib import Path
 from unittest import mock
 
 from typer.testing import CliRunner
 
 from tdd_llm import __version__
 from tdd_llm.cli import app
-from tdd_llm.config import Config, CoverageThresholds
-
+from tdd_llm.config import Config
 
 runner = CliRunner()
 
@@ -245,7 +242,8 @@ class TestSetupCommand:
     def test_setup_when_config_exists(self, temp_dir):
         """Test setup shows message when config already exists."""
         with mock.patch("tdd_llm.cli.is_first_run", return_value=False):
-            with mock.patch("tdd_llm.cli.get_global_config_path", return_value=temp_dir / "config.yaml"):
+            config_path = temp_dir / "config.yaml"
+            with mock.patch("tdd_llm.cli.get_global_config_path", return_value=config_path):
                 result = runner.invoke(app, ["setup"])
                 assert result.exit_code == 0
                 assert "already exists" in result.output.lower()
@@ -253,7 +251,8 @@ class TestSetupCommand:
     def test_setup_force_runs_wizard(self, temp_dir):
         """Test setup --force runs wizard even if config exists."""
         with mock.patch("tdd_llm.cli.is_first_run", return_value=False):
-            with mock.patch("tdd_llm.cli.get_global_config_path", return_value=temp_dir / "config.yaml"):
+            config_path = temp_dir / "config.yaml"
+            with mock.patch("tdd_llm.cli.get_global_config_path", return_value=config_path):
                 with mock.patch("tdd_llm.config.get_config_dir", return_value=temp_dir):
                     # Simulate user input: confirm yes, then defaults for all prompts
                     result = runner.invoke(
@@ -268,7 +267,8 @@ class TestSetupCommand:
         """Test setup wizard accepts user input."""
         with mock.patch("tdd_llm.cli.is_first_run", return_value=True):
             with mock.patch("tdd_llm.config.get_config_dir", return_value=temp_dir):
-                # Input: confirm, lang, backend, jira_url, jira_email, jira_project, target, platforms, coverage_line, coverage_branch
+                # Input: confirm, lang, backend, jira_url, jira_email, jira_project,
+                # target, platforms, coverage_line, coverage_branch
                 result = runner.invoke(
                     app,
                     ["setup"],

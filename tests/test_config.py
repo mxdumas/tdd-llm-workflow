@@ -1,18 +1,16 @@
 """Tests for config module."""
 
-import pytest
 import yaml
 
 from tdd_llm.config import (
+    PROJECT_CONFIG_NAME,
     Config,
     CoverageThresholds,
-    ConfigSource,
-    get_available_languages,
     get_available_backends,
-    get_project_config_path,
+    get_available_languages,
     get_global_config_path,
+    get_project_config_path,
     is_first_run,
-    PROJECT_CONFIG_NAME,
 )
 
 

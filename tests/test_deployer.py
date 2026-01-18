@@ -1,10 +1,8 @@
 """Tests for deployer module."""
 
-import pytest
-from pathlib import Path
 
 from tdd_llm.config import Config, CoverageThresholds
-from tdd_llm.deployer import deploy, get_target_dirs, DeploymentResult
+from tdd_llm.deployer import DeploymentResult, deploy, get_target_dirs
 
 
 class TestGetTargetDirs:

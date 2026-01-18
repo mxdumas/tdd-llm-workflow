@@ -1,16 +1,15 @@
 """Tests for placeholder module."""
 
-import pytest
 
 from tdd_llm.config import Config, CoverageThresholds
 from tdd_llm.placeholder import (
     find_placeholders,
+    get_all_placeholders_for_backend,
+    get_all_placeholders_for_lang,
     get_config_placeholder,
     get_platform_placeholder,
     load_placeholder,
     replace_placeholders,
-    get_all_placeholders_for_lang,
-    get_all_placeholders_for_backend,
 )
 
 
