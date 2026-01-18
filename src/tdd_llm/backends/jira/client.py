@@ -664,10 +664,11 @@ class JiraClient:
         """
         response = self._request("GET", f"/issue/{key}/comment")
         data = self._handle_response(response)
-        comments = data.get("comments", [])  # type: ignore
+        if not isinstance(data, dict):
+            return []
+        comments = data.get("comments", [])
 
-        result = []
-        for comment in comments:
+        def _format_comment(comment: dict) -> dict:
             author = comment.get("author", {})
             body = comment.get("body")
             # Parse ADF body if needed
@@ -676,11 +677,11 @@ class JiraClient:
             else:
                 body_text = str(body) if body else ""
 
-            result.append({
+            return {
                 "id": comment.get("id"),
                 "author": author.get("displayName", author.get("emailAddress", "Unknown")),
                 "body": body_text,
                 "created": comment.get("created"),
-            })
+            }
 
-        return result
+        return [_format_comment(c) for c in comments]

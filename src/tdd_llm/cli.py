@@ -1177,38 +1177,7 @@ def backend_create_story(
 
 
 # Alias: create-task -> create-story (LLMs often try this name)
-@backend_app.command(name="create-task")
-@handle_cli_errors
-def backend_create_task(
-    epic_id: Annotated[str, typer.Argument(help="Parent epic ID")],
-    title: Annotated[str, typer.Argument(help="Story/task title")],
-    description: Annotated[str, typer.Argument(help="Story/task description")],
-    acceptance_criteria: Annotated[
-        str | None,
-        typer.Option("--ac", "-a", help="Acceptance criteria"),
-    ] = None,
-    task_id: Annotated[
-        str | None,
-        typer.Option("--id", "-i", help="Task ID (auto-generated if not provided)"),
-    ] = None,
-):
-    """Create a new story/task in an epic (alias for create-story).
-
-    For files backend, adds a task section to the epic's markdown file.
-    For Jira backend, creates a Story issue linked to the epic.
-
-    Returns JSON with the created task details.
-    """
-    backend = _get_backend()
-    task = backend.create_task(
-        epic_id=epic_id,
-        title=title,
-        description=description,
-        acceptance_criteria=acceptance_criteria,
-        task_id=task_id,
-    )
-    print(_format_json(task))
-    rprint(f"\n[green]Created task {task.id} in epic {epic_id}[/green]")
+backend_app.command(name="create-task")(backend_create_story)
 
 
 @backend_app.command(name="update-story")
@@ -1266,7 +1235,7 @@ def backend_update_story(
         # Files backend - direct markdown edit
         rprint("[yellow]For files backend, edit the epic markdown file directly:[/yellow]")
         rprint("  1. Find: docs/epics/{epic_id}-*.md")
-        rprint(f"  2. Locate section: ## {task_id}: " + "{title}")
+        rprint(f"  2. Locate section starting with: ## {task_id}:")
         rprint("  3. Edit title/description/acceptance criteria")
         raise typer.Exit(1)
 
